@@ -8,4 +8,14 @@ write_to = "iseq_profmark/version.py"
 [tool.isort]
 profile = "black"
 src_paths = ["iseq-profmark"]
-known_third_party = ["pytest"]
+known_third_party = [
+  "biopython",
+  "fasta-reader",
+  "hmmer",
+  "hmmer-reader",
+  "iseq",
+  "numpy",
+  "pandas",
+  "pytest",
+  "pytest",
+]
