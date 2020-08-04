@@ -1,6 +1,6 @@
 from importlib import import_module as _import_module
 
-from . import typing
+from . import fasta, typing
 from ._confusion import ConfusionMatrix
 from ._env import ISEQ_PROFMARK_CACHE_HOME
 from ._example import example_filepath
@@ -20,6 +20,7 @@ __all__ = [
     "ProfMark",
     "__version__",
     "example_filepath",
+    "fasta",
     "genbank",
     "test",
     "typing",
