@@ -1,3 +1,5 @@
+iseq_profmark/version.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
