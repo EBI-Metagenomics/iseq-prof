@@ -2,8 +2,8 @@ import os
 import shutil
 from pathlib import Path
 
-from imm.testing import assert_allclose
 from iseq_profmark import ProfMark, example_filepath
+from numpy.testing import assert_allclose
 
 
 def test_profmark(tmp_path):

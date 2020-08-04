@@ -19,4 +19,6 @@ known_third_party = [
   "pandas",
   "pytest",
   "pytest",
+  "pooch",
+  "assertpy",
 ]

@@ -25,6 +25,8 @@ class GenBank:
     @staticmethod
     def download(accession: str, rettype: str, output: Path):
         """
+        Download GenBank file.
+
         Parameters
         ----------
         accession
@@ -36,9 +38,8 @@ class GenBank:
         Entrez.email = "horta@ebi.ac.uk"
         efetch = Entrez.efetch
 
-        with efetch(
-            db="nuccore", id=accession, rettype=rettype, retmode="text"
-        ) as handle:
+        acc = accession
+        with efetch(db="nuccore", id=acc, rettype=rettype, retmode="text") as handle:
             with open(output, "w") as file:
                 file.write(handle.read())
 
