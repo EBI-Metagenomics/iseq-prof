@@ -3,7 +3,7 @@ requires = ["setuptools >= 47.1.1", "wheel >= 0.34.2", "setuptools_scm[toml]>=4.
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-write_to = "iseq_profmark/version.py"
+write_to = "iseq_profmark/_version.py"
 
 [tool.isort]
 profile = "black"
