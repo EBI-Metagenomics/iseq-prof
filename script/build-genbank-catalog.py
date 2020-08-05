@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Aggregate [GenBank catalogs](ftp://ftp.ncbi.nlm.nih.gov/genbank/catalog/),
+# remove unnecessary rows and columns so that we have a concise table of
+# organism names that we might be interested in.
+
 import subprocess
 import tempfile
 from collections import OrderedDict
