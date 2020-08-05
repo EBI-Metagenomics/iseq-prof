@@ -9,10 +9,46 @@ from iseq.codon_table import CodonTable
 from iseq.gencode import GeneticCode
 from tqdm import tqdm
 
-__all__ = ["GenBank"]
+from ._example import example_filepath
+
+__all__ = ["GenBank", "genbank_catalog"]
+
+
+def genbank_catalog():
+    """
+    Trimmed down GenBank organisms catalog.
+
+    This catalog will contain only unique organism names that has been selected
+    by having a long sequence as we are intereted in whole genome sequences only.
+
+    Returns
+    -------
+    DataFrame
+        GenBank catalog.
+    """
+    from pandas import read_csv
+
+    filepath = example_filepath("gb238.catalog.tsv")
+    dtype = {
+        "Version": str,
+        "MolType": "category",
+        "BasePairs": int,
+        "Organism": str,
+        "TaxID": int,
+    }
+    return read_csv(filepath, sep="\t", header=0, dtype=dtype)
 
 
 class GenBank:
+    """
+    GenBank representation.
+
+    Parameters
+    ----------
+    filepath
+        File path to a genbank file.
+    """
+
     def __init__(self, filepath: Path):
         from Bio import GenBank
 
@@ -45,9 +81,24 @@ class GenBank:
 
     @property
     def accession(self) -> str:
+        """
+        Accession with version.
+        """
         return self._accession
 
     def extract_cds(self, amino_filepath: Path, nucl_filepath: Path):
+        """
+        Extract coding sequences.
+
+        Write down the amino and nucleotide sequences.
+
+        Parameters
+        ----------
+        amino_filepath
+            File to write the amino sequences to.
+        nucl_filepath
+            File to write the nucleotide sequences to.
+        """
         nucl_output = open(nucl_filepath, "w")
         amino_output = open(amino_filepath, "w")
 

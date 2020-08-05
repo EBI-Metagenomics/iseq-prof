@@ -4,7 +4,7 @@ from . import fasta, typing
 from ._confusion import ConfusionMatrix
 from ._env import ISEQ_PROFMARK_CACHE_HOME
 from ._example import example_filepath
-from ._genbank import GenBank
+from ._genbank import GenBank, genbank_catalog
 from ._profmark import ProfMark
 from ._testit import test
 
@@ -22,6 +22,7 @@ __all__ = [
     "example_filepath",
     "fasta",
     "genbank",
+    "genbank_catalog",
     "test",
     "typing",
 ]
