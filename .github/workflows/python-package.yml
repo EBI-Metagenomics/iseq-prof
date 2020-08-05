@@ -29,10 +29,10 @@ jobs:
         pip install flake8 pytest black isort setuptools --upgrade
     - name: Lint
       run: |
-        flake8 iseq_profmark
-        black --check iseq_profmark
-        isort --check-only iseq_profmark
+        flake8 iseq_prof
+        black --check iseq_prof
+        isort --check-only iseq_prof
     - name: Test
       run: |
         pip install -e .
-        pytest iseq_profmark
+        pytest iseq_prof
