@@ -33,7 +33,8 @@ new_header="Version\tMolType\tBasePairs\tOrganism\tTaxID"
 prefix=$1
 output=$2
 
-echo -e $new_header > $output
+printf $new_header > $output
+exit 0
 
 for db in est gss other
 do
