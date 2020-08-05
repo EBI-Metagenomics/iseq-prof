@@ -28,13 +28,12 @@ assert_has_program cut
 assert_has_program awk
 
 # full_header="Accession\tVersion\tID\tMolType\tBasePairs\tOrganism\tTaxID\tDB\tBioProject\tBioSample"
-new_header="Version\tMolType\tBasePairs\tOrganism\tTaxID"
+new_header="Version\\tMolType\\tBasePairs\\tOrganism\\tTaxID"
 
 prefix=$1
 output=$2
 
-printf $new_header > $output
-exit 0
+echo -e $new_header > $output
 
 for db in est gss other
 do
