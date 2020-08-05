@@ -1,6 +1,7 @@
 from importlib import import_module as _import_module
 
-from . import fasta, typing
+from . import _typing as typing
+from . import fasta, util
 from ._confusion import ConfusionMatrix
 from ._env import ISEQ_PROFMARK_CACHE_HOME
 from ._example import example_filepath
@@ -14,6 +15,7 @@ except ModuleNotFoundError:
     __version__ = "x.x.x"
 
 __all__ = [
+    "util",
     "ConfusionMatrix",
     "GenBank",
     "ISEQ_PROFMARK_CACHE_HOME",
