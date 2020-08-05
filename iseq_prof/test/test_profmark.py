@@ -2,11 +2,11 @@ import os
 import shutil
 from pathlib import Path
 
-from iseq_profmark import ProfMark, example_filepath
+from iseq_prof import Profiling, example_filepath
 from numpy.testing import assert_allclose
 
 
-def test_profmark(tmp_path):
+def test_profiling(tmp_path):
     os.chdir(tmp_path)
     acc = "AE014075.1"
     os.mkdir(acc)
@@ -28,7 +28,7 @@ def test_profmark(tmp_path):
     output = example_filepath(f"{acc}_output.gff")
     shutil.copyfile(output, accdir / "output.gff")
 
-    pm = ProfMark(Path(tmp_path), acc)
+    pm = Profiling(Path(tmp_path), acc)
 
     tpr = [
         0.0,

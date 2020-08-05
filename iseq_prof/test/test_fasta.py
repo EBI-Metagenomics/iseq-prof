@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from assertpy import assert_that, contents_of
-from iseq_profmark import example_filepath, fasta
+from iseq_prof import example_filepath, fasta
 from numpy.random import RandomState
 
 

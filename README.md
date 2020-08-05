@@ -1,3 +1,3 @@
-# iseq-profmark
+# iseq-prof
 
-ISEQ profmark.
+ISEQ profiling.

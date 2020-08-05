@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from assertpy import assert_that, contents_of
-from iseq_profmark import GenBank, example_filepath, genbank_catalog
+from iseq_prof import GenBank, example_filepath, genbank_catalog
 
 
 def test_genbank_gb(tmp_path: Path):

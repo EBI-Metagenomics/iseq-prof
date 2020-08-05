@@ -13,12 +13,12 @@ from iseq.gff import read as read_gff
 from ._confusion import ConfusionMatrix
 from ._tables import domtbl_as_dataframe
 
-__all__ = ["ProfMark", "Sample"]
+__all__ = ["Profiling", "Sample"]
 
 Sample = NamedTuple("Sample", [("prof_acc", str), ("target_id", str), ("idx", int)])
 
 
-class ProfMark:
+class Profiling:
     def __init__(
         self, root: Path, accession: str,
     ):
