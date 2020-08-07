@@ -1,4 +1,4 @@
-iseq_profmark/_version.py
+iseq_prof/_version.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
