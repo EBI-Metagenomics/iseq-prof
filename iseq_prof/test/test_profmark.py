@@ -11,24 +11,32 @@ def test_profiling(tmp_path):
     acc = "AE014075.1"
     os.mkdir(acc)
 
-    accdir = Path(tmp_path) / acc
+    root = Path(tmp_path)
 
     hmmer = example_filepath("Pfam-A_24.hmm")
-    shutil.copyfile(hmmer, accdir / "dbspace.hmm")
+    shutil.copyfile(hmmer, root / "db.hmm")
+    shutil.copyfile(hmmer, root / acc / "dbspace.hmm")
+
+    with open(root / "params.txt", "w") as file:
+        file.write("")
+
+    with open(root / acc / f"{acc}.gb", "w") as file:
+        file.write("")
 
     domtblout = example_filepath(f"{acc}_domtblout.txt")
-    shutil.copyfile(domtblout, accdir / "domtblout.txt")
+    shutil.copyfile(domtblout, root / acc / "domtblout.txt")
 
     cds_amino = example_filepath(f"{acc}_cds_amino.fasta")
-    shutil.copyfile(cds_amino, accdir / "cds_amino.fasta")
+    shutil.copyfile(cds_amino, root / acc / "cds_amino.fasta")
 
     cds_nucl = example_filepath(f"{acc}_cds_nucl.fasta")
-    shutil.copyfile(cds_nucl, accdir / "cds_nucl.fasta")
+    shutil.copyfile(cds_nucl, root / acc / "cds_nucl.fasta")
 
     output = example_filepath(f"{acc}_output.gff")
-    shutil.copyfile(output, accdir / "output.gff")
+    shutil.copyfile(output, root / acc / "output.gff")
 
-    pm = Profiling(Path(tmp_path), acc)
+    prof = Profiling(Path(tmp_path))
+    pa = prof.read_accession(acc)
 
     tpr = [
         0.0,
@@ -52,7 +60,7 @@ def test_profiling(tmp_path):
         1.0,
         1.0,
     ]
-    cm = pm.confusion_matrix()
+    cm = pa.confusion_matrix()
     assert_allclose(cm.tpr[: len(tpr)], tpr)
     fpr = [
         0.0,

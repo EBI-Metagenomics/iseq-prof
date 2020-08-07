@@ -1,3 +1,3 @@
 __all__ = ["Sample"]
 
-from ._profiling import Sample
+from ._prof_acc import Sample
