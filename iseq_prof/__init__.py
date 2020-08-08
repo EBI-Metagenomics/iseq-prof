@@ -2,6 +2,7 @@ from importlib import import_module as _import_module
 
 from . import _typing as typing
 from . import fasta, plot
+from ._cli import cli
 from ._confusion import ConfusionMatrix
 from ._env import ISEQ_PROF_CACHE_HOME
 from ._example import example_filepath
@@ -21,13 +22,14 @@ __all__ = [
     "ISEQ_PROF_CACHE_HOME",
     "ProfAcc",
     "Profiling",
+    "SolutSpace",
     "__version__",
+    "cli",
     "example_filepath",
     "fasta",
     "genbank",
     "genbank_catalog",
+    "plot",
     "test",
     "typing",
-    "plot",
-    "SolutSpace",
 ]

@@ -21,4 +21,5 @@ known_third_party = [
   "pytest",
   "pooch",
   "assertpy",
+  "click",
 ]
