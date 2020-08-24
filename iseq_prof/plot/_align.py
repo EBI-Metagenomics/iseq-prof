@@ -1,16 +1,17 @@
 import plotly.express as px
 from pandas import DataFrame
 
-from .._profiling import Profiling
+from .._prof_acc import ProfAcc
 
 __all__ = ["align"]
 
 
-def align(prof: Profiling, accession: str, evalue=1e-10):
+def align(prof_acc: ProfAcc, evalue=1e-10):
+    """
+    Alignment plot.
+    """
 
-    acc = accession
-    pa = prof.read_accession(acc)
-    df = pa.hit_table(evalue=evalue)
+    df = prof_acc.hit_table(evalue=evalue)
 
     rows = []
     for i, (_, row) in enumerate(df.iterrows()):
@@ -35,7 +36,8 @@ def align(prof: Profiling, accession: str, evalue=1e-10):
         hover_data=["profile-name", "length", "e-value", "true-positive"],
     )
 
-    gb = pa.genbank_metadata()
+    gb = prof_acc.genbank_metadata()
+    acc = prof_acc.accession
     fig.update_layout(showlegend=False, title=f"{acc}: {gb.description} ({gb.kingdom})")
     fig.update_traces(mode="markers+lines")
     fig.update_layout(hovermode="x")

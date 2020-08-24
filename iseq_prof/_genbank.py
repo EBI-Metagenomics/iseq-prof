@@ -200,7 +200,7 @@ def is_extended_protein(seq: str):
     return remains > 0
 
 
-def remove_stop_codon(nucl_seq: Seq, amino_seq: Seq, trans_table_num: int):
+def encode_amino(nucl_seq: Seq, trans_table_num: int) -> str:
     abc_name = get_nucl_alphabet(nucl_seq)
     if abc_name == "dna":
         base_abc = nmm.DNAAlphabet()
@@ -219,16 +219,28 @@ def remove_stop_codon(nucl_seq: Seq, amino_seq: Seq, trans_table_num: int):
             # Add M to the first position, no matter
             # what the nucleotide sequence says.
             # That is what genbank seems to be doing.
-            if codon not in codon_table.start_codons:
-                print("Warning: the first codon does not code for M. Adding M anyway.")
-            aminos.append("M")
-            continue
+            # if codon not in codon_table.start_codons:
+            #     print("Warning: the first codon does not code for M. Adding M anyway.")
+            # aminos.append("M")
+
+            if codon in codon_table.start_codons:
+                aminos.append("M")
+                continue
         aminos.append(codon_table.decode(codon).decode())
 
-    amino_str = "".join(aminos)
-    assert amino_str[-1] == "*"
-    amino_str = amino_str[:-1]
+    return "".join(aminos)
+
+
+def remove_stop_codon(nucl_seq: Seq, amino_seq: Seq, trans_table_num: int):
+    amino_str = encode_amino(nucl_seq, trans_table_num)
+
+    if amino_str[-1] == "*":
+        nucl_seq = nucl_seq[:-3]
+
+    amino_str = encode_amino(nucl_seq, trans_table_num)
     assert "*" not in amino_str
     assert str(amino_seq) == amino_str
     assert (len(str(nucl_seq)) % 3) == 0
-    return nucl_seq[:-3], amino_seq
+    assert len(nucl_seq) == len(amino_seq) * 3
+
+    return nucl_seq, amino_seq

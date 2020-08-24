@@ -12,6 +12,9 @@ __all__ = ["roc"]
 
 
 def roc(prof: Profiling, accessions: Iterable[str]):
+    """
+    ROC plot.
+    """
     x = "false positive rate"
     y = "true positive rate"
     dfs: List[DataFrame] = []

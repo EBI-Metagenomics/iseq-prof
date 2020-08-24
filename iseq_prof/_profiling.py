@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional, Set
+from typing import Iterable, List, Set
 
 from fasta_reader import FASTAWriter, open_fasta
 from iseq.gff import GFFWriter
@@ -22,7 +22,7 @@ class Profiling:
         assert self._hmmdb.exists()
         assert self._params.exists()
 
-    def merge_chunks(self, accessions: Optional[List[str]], force=False):
+    def merge_chunks(self, accessions: Iterable[str], force=False):
         """
         Merge ISEQ chunked files.
 
@@ -32,21 +32,18 @@ class Profiling:
             Overwrite existing files if necessary. Defaults to ``False``.
         """
         names = ["output.gff", "oamino.fasta", "ocodon.fasta"]
-        if accessions is None:
-            accessions = self.accessions
 
-        for acc in tqdm(accessions, desc="Merge", leave=None):
+        for acc in tqdm(list(accessions), desc="Merge"):
             folder = self._root / acc
             if not force and all((folder / n).exists() for n in names):
                 continue
             merge_chunks(folder)
 
-    def normalize_iseq_files(self, verbose=True):
+    def normalize_iseq_files(self, accessions: Iterable[str], verbose=True):
         """
         Normalize segment identifications.
         """
-        dis = not verbose
-        for acc in tqdm(self.accessions, desc="Normalize", disable=dis, leave=None):
+        for acc in tqdm(list(accessions), desc="Normalize"):
             folder = self._root / acc
             output = folder / "output.gff"
             oamino = folder / "oamino.fasta"

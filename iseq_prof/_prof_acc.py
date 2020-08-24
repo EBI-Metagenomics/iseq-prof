@@ -75,6 +75,11 @@ class ProfAcc:
         self._domtblout_file = domtblout_file
         self._output_file = output_file
         self._genbank = genbank
+        self._accession = accdir.name
+
+    @property
+    def accession(self) -> str:
+        return self._accession
 
     def confusion_matrix(
         self, solut_space=SolutSpace.PROF_TARGET, solut_space_idx=True
