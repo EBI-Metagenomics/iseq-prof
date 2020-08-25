@@ -4,6 +4,7 @@ from typing import List, Optional
 import click
 
 from . import plot
+from ._accession import Accession
 from ._profiling import Profiling
 
 
@@ -112,6 +113,21 @@ def plot_align(experiment: str, accession: str, output: str):
         fig.write_image(str(outpath))
 
 
+@click.command()
+@click.argument("accession", type=str)
+def info(accession: str):
+    """
+    Show information about accession.
+    """
+    acc = Accession(accession)
+    click.echo(f"Organism: {acc.organism}")
+    click.echo(f"Domain  : {acc.domain}")
+    click.echo(f"Phylum  : {acc.phylum}")
+    click.echo(f"Class   : {acc.class_}")
+    click.echo(f"Order   : {acc.order}")
+
+
 cli.add_command(merge_chunks)
 cli.add_command(plot_roc)
 cli.add_command(plot_align)
+cli.add_command(info)

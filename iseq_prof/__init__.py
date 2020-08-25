@@ -2,6 +2,7 @@ from importlib import import_module as _import_module
 
 from . import _typing as typing
 from . import fasta, plot
+from ._accession import Accession
 from ._cli import cli
 from ._confusion import ConfusionMatrix
 from ._env import ISEQ_PROF_CACHE_HOME
@@ -17,6 +18,7 @@ except ModuleNotFoundError:
     __version__ = "x.x.x"
 
 __all__ = [
+    "Accession",
     "ConfusionMatrix",
     "GenBank",
     "ISEQ_PROF_CACHE_HOME",
