@@ -20,9 +20,6 @@ def test_profiling(tmp_path):
     with open(root / "params.txt", "w") as file:
         file.write("")
 
-    with open(root / acc / f"{acc}.gb", "w") as file:
-        file.write("")
-
     domtblout = example_filepath(f"{acc}_domtblout.txt")
     shutil.copyfile(domtblout, root / acc / "domtblout.txt")
 
@@ -34,6 +31,9 @@ def test_profiling(tmp_path):
 
     output = example_filepath(f"{acc}_output.gff")
     shutil.copyfile(output, root / acc / "output.gff")
+
+    output = example_filepath(f"{acc}.gb")
+    shutil.copyfile(output, root / acc / f"{acc}.gb")
 
     prof = Profiling(Path(tmp_path))
     pa = prof.read_accession(acc)

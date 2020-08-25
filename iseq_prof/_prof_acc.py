@@ -14,6 +14,7 @@ from iseq.gff import GFF
 from iseq.gff import read as read_gff
 from pandas import DataFrame
 
+from ._accession import Accession
 from ._confusion import ConfusionMatrix
 from ._file import assert_file_exist
 from ._tables import domtbl_as_dataframe
@@ -75,17 +76,25 @@ class ProfAcc:
         self._domtblout_file = domtblout_file
         self._output_file = output_file
         self._genbank = genbank
-        self._accession = accdir.name
+        self._accession: Accession = Accession.from_file(genbank)
 
     @property
-    def accession(self) -> str:
+    def accession(self) -> Accession:
         return self._accession
 
-    def confusion_matrix(
+    def sample_space(
         self, solut_space=SolutSpace.PROF_TARGET, solut_space_idx=True
-    ) -> ConfusionMatrix:
-        from numpy import zeros
+    ) -> Set[Sample]:
+        return self._get_samples(solut_space, solut_space_idx)[0]
 
+    def true_sample_space(
+        self, solut_space=SolutSpace.PROF_TARGET, solut_space_idx=True
+    ) -> Set[Sample]:
+        return self._get_samples(solut_space, solut_space_idx)[1]
+
+    def _get_samples(
+        self, solut_space=SolutSpace.PROF_TARGET, solut_space_idx=True
+    ) -> Tuple[Set[Sample], Set[Sample], List[Sample]]:
         if solut_space == SolutSpace.PROF_TARGET:
             sample_space, true_samples, ordered_sample_hits = self._prof_target_space()
         elif solut_space == SolutSpace.PROF:
@@ -98,6 +107,17 @@ class ProfAcc:
             sample_space = set(s for s in sample_space if s.idx == 0)
             true_samples = set(s for s in true_samples if s.idx == 0)
             ordered_sample_hits = [s for s in ordered_sample_hits if s.idx == 0]
+
+        return sample_space, true_samples, ordered_sample_hits
+
+    def confusion_matrix(
+        self, solut_space=SolutSpace.PROF_TARGET, solut_space_idx=True
+    ) -> ConfusionMatrix:
+        from numpy import zeros
+
+        sample_space, true_samples, ordered_sample_hits = self._get_samples(
+            solut_space, solut_space_idx
+        )
 
         sample_space_id = {s: i for i, s in enumerate(sorted(sample_space))}
         true_sample_ids = [sample_space_id[k] for k in true_samples]

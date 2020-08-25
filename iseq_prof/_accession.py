@@ -1,4 +1,7 @@
-from typing import List, Optional
+from __future__ import annotations
+
+from pathlib import Path
+from typing import List, Optional, Type
 
 from Bio import Entrez, SeqIO
 
@@ -10,6 +13,7 @@ class Accession:
         self._accession = accession
         self._taxonomy: Optional[List[str]] = None
         self._organism: Optional[str] = None
+        self._molecule: Optional[str] = None
 
     @property
     def name(self) -> str:
@@ -57,6 +61,13 @@ class Accession:
         assert self._organism is not None
         return self._organism
 
+    @property
+    def molecule(self) -> str:
+        if self._molecule is None:
+            self._fetch_genbank_info()
+        assert self._molecule is not None
+        return self._molecule
+
     def _fetch_genbank_info(self):
         Entrez.email = "horta@ebi.ac.uk"
         efetch = Entrez.efetch
@@ -64,8 +75,21 @@ class Accession:
         acc = self._accession
         with efetch(db="nuccore", id=acc, rettype="gb", retmode="text") as handle:
             record = next(SeqIO.parse(handle, "genbank"))
-            self._taxonomy = record.annotations["taxonomy"]
-            self._organism = record.annotations["organism"]
+            self._extract_annotations(record)
+
+    def _extract_annotations(self, record):
+        self._taxonomy = record.annotations["taxonomy"]
+        self._organism = record.annotations["organism"]
+        self._molecule = record.annotations["molecule_type"]
+
+    @classmethod
+    def from_file(cls: Type[Accession], filepath: Path) -> Accession:
+        with open(filepath, "r") as file:
+            record = next(SeqIO.parse(file, "genbank"))
+            version = record.annotations["sequence_version"]
+            acc = cls(f"{record.name}.{version}")
+            acc._extract_annotations(record)
+        return acc
 
     def __str__(self) -> str:
         return f"<{self._accession}>"

@@ -10,16 +10,17 @@ write_to = "iseq_prof/_version.py"
 profile = "black"
 src_paths = ["iseq-prof"]
 known_third_party = [
+  "assertpy",
   "biopython",
+  "click",
   "fasta-reader",
   "hmmer",
   "hmmer-reader",
   "iseq",
   "numpy",
   "pandas",
-  "pytest",
-  "pytest",
   "pooch",
-  "assertpy",
-  "click",
+  "pytest",
+  "pytest",
+  "tabulate",
 ]
