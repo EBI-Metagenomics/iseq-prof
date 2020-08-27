@@ -122,7 +122,10 @@ def plot_align(experiment: str, accession: str, output: str):
     ),
 )
 @click.argument("accession", type=str)
-def info(experiment: str, accession: str):
+@click.option(
+    "--n", help="Number of rows to show.", type=int, default=10,
+)
+def info(experiment: str, accession: str, n: int):
     """
     Show information about accession.
     """
@@ -140,10 +143,157 @@ def info(experiment: str, accession: str):
     show_space_stat(prof_acc)
 
     click.echo()
-    show_true_table(prof_acc)
+    show_true_table(prof_acc, n)
 
 
-def show_true_table(prof_acc: ProfAcc):
+@click.command()
+@click.argument(
+    "experiment",
+    type=click.Path(
+        exists=True, dir_okay=True, file_okay=False, readable=True, resolve_path=True
+    ),
+)
+@click.argument("accession", type=str)
+@click.argument("profile", type=str)
+def info_prof(experiment: str, accession: str, profile: str):
+    """
+    Show information about accession.
+    """
+    root = Path(experiment)
+    prof_acc = ProfAcc(root / accession)
+
+    show_true_table_profile(prof_acc, profile)
+
+    click.echo("")
+    show_hit_table_profile(prof_acc, profile)
+
+
+def show_true_table_profile(prof_acc: ProfAcc, profile: str):
+    true_table = prof_acc.true_table()
+    true_table = true_table[true_table["target.name"] == profile]
+    true_table = true_table.rename(
+        columns={
+            "target.name": "t.name",
+            "target.accession": "t.acc",
+            "target.length": "t.len",
+            "query.name": "q.name",
+            "query.accession": "q.acc",
+            "query.length": "q.len",
+            "full_sequence.e_value": "fs.e_value",
+            "full_sequence.score": "fs.score",
+            "full_sequence.bias": "fs.bias",
+            "description": "desc",
+            "hmm_coord.start": "h.start",
+            "hmm_coord.stop": "h.stop",
+            "ali_coord.start": "a.start",
+            "ali_coord.stop": "a.stop",
+        }
+    )
+    del true_table["t.acc"]
+    del true_table["q.acc"]
+    del true_table["domain.id"]
+    del true_table["domain.size"]
+    del true_table["domain.c_value"]
+    del true_table["domain.i_value"]
+    del true_table["domain.score"]
+    del true_table["domain.bias"]
+    del true_table["env_coord.start"]
+    del true_table["env_coord.stop"]
+
+    true_table["q.name"] = true_table["q.name"].str.replace(r"\|.*", "")
+    true_table = true_table.rename(
+        columns={
+            "q.name": "seqid",
+            "t.name": "profile",
+            "t.len": "p.len",
+            "q.len": "s.len",
+            "h.start": "p.start",
+            "h.stop": "p.stop",
+            "a.start": "s.start",
+            "a.stop": "s.stop",
+        }
+    )
+    del true_table["fs.score"]
+
+    columns = [
+        "seqid",
+        "s.len",
+        "s.start",
+        "s.stop",
+        "profile",
+        "p.len",
+        "p.start",
+        "p.stop",
+        "fs.e_value",
+        "fs.bias",
+        "acc",
+        "desc",
+    ]
+    true_table = true_table[columns]
+
+    table = [[tabulate(true_table.values, headers=true_table.columns)]]
+    click.echo(tabulate(table, headers=["true table / amino acid space"]))
+
+
+def show_hit_table_profile(prof_acc: ProfAcc, profile: str):
+    hit_table = prof_acc.hit_table()
+    hit_table = hit_table[hit_table["profile-name"] == profile]
+    hit_table["e-value"] = hit_table["e-value"].astype(str)
+    del hit_table["profile-acc"]
+    del hit_table["attributes"]
+    del hit_table["id"]
+    del hit_table["index"]
+    del hit_table["score"]
+    hit_table = hit_table.rename(
+        columns={
+            "att_Epsilon": "eps",
+            "att_Score": "score",
+            "profile-name": "profile",
+            "att_Bias": "bias",
+            "att_ID": "id",
+            "true-positive": "tp",
+            "start": "s.start",
+            "end": "s.stop",
+            "abs_start": "abs.start",
+            "abs_end": "abs.stop",
+        }
+    )
+    del hit_table["att_E-value"]
+    del hit_table["type"]
+    del hit_table["att_Profile_name"]
+    del hit_table["att_Window"]
+    del hit_table["att_Target_alph"]
+    del hit_table["source"]
+    del hit_table["phase"]
+    del hit_table["att_Profile_alph"]
+    del hit_table["att_Profile_acc"]
+    del hit_table["length"]
+    del hit_table["strand"]
+    del hit_table["score"]
+    del hit_table["bias"]
+
+    hit_table["seqid"] = hit_table["seqid"].str.replace(r"\|.*", "")
+    hit_table["e-value"] = hit_table["e-value"].astype(str)
+    hit_table = hit_table[
+        [
+            "seqid",
+            "s.start",
+            "s.stop",
+            "profile",
+            "id",
+            "e-value",
+            "tp",
+            "abs.start",
+            "abs.stop",
+            "eps",
+        ]
+    ]
+
+    table = [[tabulate(hit_table.values, headers=hit_table.columns)]]
+    click.echo(tabulate(table, headers=["hit table / nucleotide space"]))
+
+
+def show_true_table(prof_acc: ProfAcc, n: int):
     true_table = prof_acc.true_table()
     true_table = true_table.reset_index(drop=True)
     true_table = true_table[
@@ -152,23 +302,27 @@ def show_true_table(prof_acc: ProfAcc):
     true_table = true_table.rename(
         columns={
             "target.name": "profile",
-            "full_sequence.e_value": "full_seq.e_value",
-            "full_sequence.score": "full_seq.score",
+            "full_sequence.e_value": "fs.e_value",
+            "full_sequence.score": "fs.score",
         }
     )
-    true_table["full_seq.score"] = true_table["full_seq.score"].astype(float)
-    true_table = true_table.sort_values("full_seq.score", ascending=False)
+    true_table["fs.score"] = true_table["fs.score"].astype(float)
+    true_table = true_table.sort_values("fs.score", ascending=False)
     count = true_table["profile"].value_counts()
     true_table = true_table.drop_duplicates("profile")
     true_table = true_table.set_index("profile")
     true_table["# hits"] = count
     true_table = true_table.reset_index()
-    true_table = true_table[["profile", "full_seq.e_value", "# hits"]]
+    true_table = true_table[["profile", "fs.e_value", "# hits"]]
 
-    click.echo(tabulate(true_table.head(n=10).values, headers=true_table.columns))
-    click.echo()
+    table = []
+    row = [tabulate(true_table.head(n=n).values, headers=true_table.columns)]
     true_table = true_table.sort_values("# hits", ascending=False)
-    click.echo(tabulate(true_table.head(n=10).values, headers=true_table.columns))
+    row.append(tabulate(true_table.head(n=n).values, headers=true_table.columns))
+    table.append(row)
+    table = [[tabulate(table, headers=["sort by score", "sort by hits"])]]
+    title = f"true table (top {n} rows)"
+    click.echo(tabulate(table, headers=[title]))
 
 
 def show_space_stat(prof_acc: ProfAcc):
@@ -186,7 +340,9 @@ def show_space_stat(prof_acc: ProfAcc):
             ]
         )
 
-    click.echo(tabulate(table, headers=["space", "no-repeat", "repeat"]))
+    table = [[tabulate(table, headers=["space", "no repeat", "repeat"])]]
+    title = "solution space"
+    click.echo(tabulate(table, headers=[title]))
 
 
 def space_stat(prof_acc: ProfAcc, space_type: SolutSpace, repeat: bool):
@@ -198,7 +354,8 @@ def space_stat(prof_acc: ProfAcc, space_type: SolutSpace, repeat: bool):
     return f"{nt}/{n} = {frac:.5f}"
 
 
-cli.add_command(merge_chunks)
-cli.add_command(plot_roc)
-cli.add_command(plot_align)
 cli.add_command(info)
+cli.add_command(info_prof)
+cli.add_command(merge_chunks)
+cli.add_command(plot_align)
+cli.add_command(plot_roc)
