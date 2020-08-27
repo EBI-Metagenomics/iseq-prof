@@ -12,7 +12,6 @@ from fasta_reader import open_fasta
 from hmmer import read_domtbl
 from iseq.gff import GFF
 from iseq.gff import read as read_gff
-from pandas import DataFrame
 
 from ._accession import Accession
 from ._confusion import ConfusionMatrix
@@ -136,7 +135,7 @@ class ProfAcc:
     def true_table(self):
         return domtbl_as_dataframe(read_domtbl(self._domtblout_file))
 
-    def hit_table(self, solut_space=SolutSpace.PROF_TARGET, evalue=1e-10):
+    def hit_table(self, evalue=1e-10):
         df = self._gff.to_dataframe()
         df = df[df["att_E-value"] <= evalue]
         df["id"] = df["att_ID"]
@@ -145,27 +144,44 @@ class ProfAcc:
         df["e-value"] = df["att_E-value"]
         df["length"] = df["end"] - df["start"] + 1
         df["true-positive"] = "no"
-        true_samples = self._get_true_samples(solut_space)
+        types = [SolutSpace.PROF_TARGET, SolutSpace.PROF, SolutSpace.TARGET]
+        true_samples = {t: self._get_true_samples(t) for t in types}
 
         true_positive = []
-        for _, row in df.iterrows():
-            sample = Sample(row["profile-acc"], row["seqid"].split("|")[0], 0)
-            if sample in true_samples:
-                true_positive.append("yes")
+        for row in df.itertuples():
+
+            tp = []
+            sample = Sample(row.att_Profile_acc, row.seqid.split("|")[0], 0)
+            if sample in true_samples[SolutSpace.PROF_TARGET]:
+                tp.append("prof-target")
+
+            sample = Sample(row.att_Profile_acc, "", 0)
+            if sample in true_samples[SolutSpace.PROF]:
+                tp.append("prof")
+
+            sample = Sample("", row.seqid.split("|")[0], 0)
+            if sample in true_samples[SolutSpace.TARGET]:
+                tp.append("target")
+
+            if len(tp) > 0:
+                true_positive.append(",".join(tp))
             else:
-                true_positive.append("no")
+                true_positive.append("-")
+
         df["true-positive"] = true_positive
 
-        rows = []
-        for _, row in df.iterrows():
+        abs_starts = []
+        abs_ends = []
+        for row in df.itertuples():
             v = row.seqid.split("|")[0].split(":")[1]
             ref_start = int(v.split("-")[0])
             abs_start = ref_start + row.start - 1
             abs_end = ref_start + row.end - 1
-            row["abs_start"] = abs_start
-            row["abs_end"] = abs_end
-            rows.append(row)
-        df = DataFrame(rows).reset_index(drop=False)
+            abs_starts.append(abs_start)
+            abs_ends.append(abs_end)
+
+        df["abs_start"] = abs_starts
+        df["abs_end"] = abs_ends
         df = df.sort_values(by=["abs_start", "abs_end"]).reset_index(drop=True)
 
         return df

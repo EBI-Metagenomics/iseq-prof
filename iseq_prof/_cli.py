@@ -251,7 +251,6 @@ def show_hit_table_profile(prof_acc: ProfAcc, profile: str):
     del hit_table["profile-acc"]
     del hit_table["attributes"]
     del hit_table["id"]
-    del hit_table["index"]
     del hit_table["score"]
     hit_table = hit_table.rename(
         columns={
@@ -260,7 +259,6 @@ def show_hit_table_profile(prof_acc: ProfAcc, profile: str):
             "profile-name": "profile",
             "att_Bias": "bias",
             "att_ID": "id",
-            "true-positive": "tp",
             "start": "s.start",
             "end": "s.stop",
             "abs_start": "abs.start",
@@ -296,7 +294,7 @@ def show_hit_table_profile(prof_acc: ProfAcc, profile: str):
             "profile",
             "id",
             "e-value",
-            "tp",
+            "true-positive",
             "abs.start",
             "abs.stop",
             "eps",
