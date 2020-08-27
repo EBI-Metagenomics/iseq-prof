@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import click
+from pandas import DataFrame
 from tabulate import tabulate
 
 from . import plot
@@ -160,22 +161,62 @@ def info(experiment: str, accession: str, n: int):
 )
 @click.argument("accession", type=str)
 @click.argument("profile", type=str)
-def info_prof(experiment: str, accession: str, profile: str):
+@click.option(
+    "--e-value",
+    help="E-value threshold.",
+    type=float,
+    default=1e-10,
+)
+def info_prof(experiment: str, accession: str, profile: str, e_value: float):
     """
     Show information about accession.
     """
     root = Path(experiment)
     prof_acc = ProfAcc(root / accession)
 
-    show_true_table_profile(prof_acc, profile)
-
-    click.echo("")
-    show_hit_table_profile(prof_acc, profile)
-
-
-def show_true_table_profile(prof_acc: ProfAcc, profile: str):
     true_table = prof_acc.true_table()
     true_table = true_table[true_table["target.name"] == profile]
+    show_true_table_profile(true_table)
+
+    click.echo("")
+    hit_table = prof_acc.hit_table(evalue=e_value)
+    hit_table = hit_table[hit_table["profile-name"] == profile]
+    show_hit_table_profile(hit_table)
+
+
+@click.command()
+@click.argument(
+    "experiment",
+    type=click.Path(
+        exists=True, dir_okay=True, file_okay=False, readable=True, resolve_path=True
+    ),
+)
+@click.argument("accession", type=str)
+@click.argument("target", type=str)
+@click.option(
+    "--e-value",
+    help="E-value threshold.",
+    type=float,
+    default=1e-10,
+)
+def info_target(experiment: str, accession: str, target: str, e_value: float):
+    """
+    Show information about target.
+    """
+    root = Path(experiment)
+    prof_acc = ProfAcc(root / accession)
+
+    true_table = prof_acc.true_table()
+    true_table = true_table[true_table["query.name"].str.replace(r"\|.*", "") == target]
+    show_true_table_profile(true_table)
+
+    click.echo("")
+    hit_table = prof_acc.hit_table(evalue=e_value)
+    hit_table = hit_table[hit_table["seqid"].str.replace(r"\|.*", "") == target]
+    show_hit_table_profile(hit_table)
+
+
+def show_true_table_profile(true_table: DataFrame):
     true_table = true_table.rename(
         columns={
             "target.name": "t.name",
@@ -249,9 +290,7 @@ def show_true_table_profile(prof_acc: ProfAcc, profile: str):
     click.echo(tabulate(table, headers=[title]))
 
 
-def show_hit_table_profile(prof_acc: ProfAcc, profile: str):
-    hit_table = prof_acc.hit_table()
-    hit_table = hit_table[hit_table["profile-name"] == profile]
+def show_hit_table_profile(hit_table: DataFrame):
     hit_table["e-value"] = hit_table["e-value"].astype(str)
     del hit_table["profile-acc"]
     del hit_table["attributes"]
@@ -274,6 +313,9 @@ def show_hit_table_profile(prof_acc: ProfAcc, profile: str):
     hit_table["att_Profile_alph"]
     assert all(hit_table["att_Target_alph"] == hit_table["att_Profile_alph"])
     alphabet = hit_table["att_Target_alph"].iloc[0]
+
+    hit_table["score"] = hit_table["score"].astype(float)
+    hit_table = hit_table.sort_values("score", ascending=False)
 
     del hit_table["att_E-value"]
     del hit_table["type"]
@@ -374,6 +416,7 @@ def space_stat(prof_acc: ProfAcc, space_type: SolutSpace, repeat: bool):
 
 cli.add_command(info)
 cli.add_command(info_prof)
+cli.add_command(info_target)
 cli.add_command(merge_chunks)
 cli.add_command(plot_align)
 cli.add_command(plot_roc)

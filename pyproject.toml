@@ -9,18 +9,3 @@ write_to = "iseq_prof/_version.py"
 [tool.isort]
 profile = "black"
 src_paths = ["iseq-prof"]
-known_third_party = [
-  "assertpy",
-  "biopython",
-  "click",
-  "fasta-reader",
-  "hmmer",
-  "hmmer-reader",
-  "iseq",
-  "numpy",
-  "pandas",
-  "pooch",
-  "pytest",
-  "pytest",
-  "tabulate",
-]
