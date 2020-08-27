@@ -100,8 +100,7 @@ class ConfusionMatrix:
 
     @property
     def sensitivity(self):
-        """ Sensitivity (also known as true positive rate.)
-        """
+        """Sensitivity (also known as true positive rate.)"""
         return self.TP / self._P
 
     @property
@@ -114,8 +113,7 @@ class ConfusionMatrix:
 
     @property
     def specifity(self):
-        """ Specifity (also known as true negative rate.)
-        """
+        """Specifity (also known as true negative rate.)"""
         return self.TN / self._N
 
     @property
@@ -130,8 +128,7 @@ class ConfusionMatrix:
 
     @property
     def npv(self):
-        """ Negative predictive value.
-        """
+        """Negative predictive value."""
         from numpy import empty, nan
 
         r = empty(self._num_sorted_samples + 1)
@@ -142,8 +139,7 @@ class ConfusionMatrix:
 
     @property
     def fallout(self):
-        """ Fall-out (also known as false positive rate.)
-        """
+        """Fall-out (also known as false positive rate.)"""
         return 1 - self.specifity
 
     @property
@@ -152,26 +148,22 @@ class ConfusionMatrix:
 
     @property
     def fnr(self):
-        """ False negative rate.
-        """
+        """False negative rate."""
         return 1 - self.sensitivity
 
     @property
     def fdr(self):
-        """ False discovery rate.
-        """
+        """False discovery rate."""
         return 1 - self.precision
 
     @property
     def accuracy(self):
-        """ Accuracy.
-        """
+        """Accuracy."""
         return (self.TP + self.TN) / (self._N + self._P)
 
     @property
     def f1score(self):
-        """ F1 score (harmonic mean of precision and sensitivity).
-        """
+        """F1 score (harmonic mean of precision and sensitivity)."""
         return 2 * self.TP / (2 * self.TP + self.FP + self.FN)
 
     @property

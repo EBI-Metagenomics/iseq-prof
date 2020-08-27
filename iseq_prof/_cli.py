@@ -59,7 +59,9 @@ def merge_chunks(experiment: str, accessions: Optional[str], force: bool):
     ),
 )
 @click.argument(
-    "accessions", type=str, default=None,
+    "accessions",
+    type=str,
+    default=None,
 )
 @click.argument(
     "output",
@@ -123,7 +125,10 @@ def plot_align(experiment: str, accession: str, output: str):
 )
 @click.argument("accession", type=str)
 @click.option(
-    "--n", help="Number of rows to show.", type=int, default=10,
+    "--n",
+    help="Number of rows to show.",
+    type=int,
+    default=10,
 )
 def info(experiment: str, accession: str, n: int):
     """
