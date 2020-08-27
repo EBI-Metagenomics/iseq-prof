@@ -179,7 +179,7 @@ def show_true_table_profile(prof_acc: ProfAcc, profile: str):
             "query.name": "q.name",
             "query.accession": "q.acc",
             "query.length": "q.len",
-            "full_sequence.e_value": "fs.e_value",
+            "full_sequence.e_value": "e-value",
             "full_sequence.score": "fs.score",
             "full_sequence.bias": "fs.bias",
             "description": "desc",
@@ -214,6 +214,7 @@ def show_true_table_profile(prof_acc: ProfAcc, profile: str):
         }
     )
     del true_table["fs.score"]
+    del true_table["fs.bias"]
 
     columns = [
         "seqid",
@@ -224,15 +225,23 @@ def show_true_table_profile(prof_acc: ProfAcc, profile: str):
         "p.len",
         "p.start",
         "p.stop",
-        "fs.e_value",
-        "fs.bias",
+        "e-value",
         "acc",
         "desc",
     ]
     true_table = true_table[columns]
+    true_table["s.start"] = (
+        true_table["s.start"].astype(str)
+        + "/"
+        + (true_table["s.start"] * 3 - 2).astype(str)
+    )
+    true_table["s.stop"] = (
+        true_table["s.stop"].astype(str) + "/" + (true_table["s.stop"] * 3).astype(str)
+    )
 
     table = [[tabulate(true_table.values, headers=true_table.columns)]]
-    click.echo(tabulate(table, headers=["true table / amino acid space"]))
+    title = "true table (amino acid space / nucleotide space)"
+    click.echo(tabulate(table, headers=[title]))
 
 
 def show_hit_table_profile(prof_acc: ProfAcc, profile: str):
@@ -258,6 +267,11 @@ def show_hit_table_profile(prof_acc: ProfAcc, profile: str):
             "abs_end": "abs.stop",
         }
     )
+    hit_table["att_Target_alph"]
+    hit_table["att_Profile_alph"]
+    assert all(hit_table["att_Target_alph"] == hit_table["att_Profile_alph"])
+    alphabet = hit_table["att_Target_alph"].iloc[0]
+
     del hit_table["att_E-value"]
     del hit_table["type"]
     del hit_table["att_Profile_name"]
@@ -290,7 +304,8 @@ def show_hit_table_profile(prof_acc: ProfAcc, profile: str):
     ]
 
     table = [[tabulate(hit_table.values, headers=hit_table.columns)]]
-    click.echo(tabulate(table, headers=["hit table / nucleotide space"]))
+    title = f"hit table ({alphabet} space)"
+    click.echo(tabulate(table, headers=[title]))
 
 
 def show_true_table(prof_acc: ProfAcc, n: int):
