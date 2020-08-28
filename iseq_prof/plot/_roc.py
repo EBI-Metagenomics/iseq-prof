@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from numpy import linspace, stack
 from pandas import DataFrame, concat
+from tqdm import tqdm
 
 from .._profiling import Profiling
 
@@ -18,7 +19,7 @@ def roc(prof: Profiling, accessions: Iterable[str]):
     x = "false positive rate"
     y = "true positive rate"
     dfs: List[DataFrame] = []
-    for acc in accessions:
+    for acc in tqdm(accessions):
         pa = prof.read_accession(acc)
         cm = pa.confusion_matrix()
         roc = cm.roc
