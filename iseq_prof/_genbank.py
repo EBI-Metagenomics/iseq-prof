@@ -235,7 +235,7 @@ def remove_stop_codon(nucl_seq: Seq, amino_seq: Seq, trans_table_num: int):
 
     amino_str = encode_amino(nucl_seq, trans_table_num)
     assert "*" not in amino_str
-    if str(amino_seq)[0] == amino_str[0]:
+    if str(amino_seq)[0] != amino_str[0]:
         raise ValueError("The original nucl->amino does not look right.")
 
     assert str(amino_seq) == amino_str
