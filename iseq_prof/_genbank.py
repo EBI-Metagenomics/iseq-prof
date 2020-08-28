@@ -137,9 +137,12 @@ class GenBank:
 
             assert len(feature.qualifiers["transl_table"]) == 1
             transl_table = int(feature.qualifiers["transl_table"][0])
-            nucl_seq, amino_seq = remove_stop_codon(
-                nucl_rec.seq, amino_rec.seq, transl_table
-            )
+            try:
+                nucl_seq, amino_seq = remove_stop_codon(
+                    nucl_rec.seq, amino_rec.seq, transl_table
+                )
+            except ValueError:
+                continue
             nucl_rec.seq = nucl_seq
             amino_rec.seq = amino_seq
 
@@ -216,13 +219,6 @@ def encode_amino(nucl_seq: Seq, trans_table_num: int) -> str:
         stop = min(start + 3, len(nucl_str))
         codon = nmm.Codon.create(nucl_str[start:stop].encode(), base_abc)
         if start == 0:
-            # Add M to the first position, no matter
-            # what the nucleotide sequence says.
-            # That is what genbank seems to be doing.
-            # if codon not in codon_table.start_codons:
-            #     print("Warning: the first codon does not code for M. Adding M anyway.")
-            # aminos.append("M")
-
             if codon in codon_table.start_codons:
                 aminos.append("M")
                 continue
@@ -239,6 +235,9 @@ def remove_stop_codon(nucl_seq: Seq, amino_seq: Seq, trans_table_num: int):
 
     amino_str = encode_amino(nucl_seq, trans_table_num)
     assert "*" not in amino_str
+    if str(amino_seq)[0] == amino_str[0]:
+        raise ValueError("The original nucl->amino does not look right.")
+
     assert str(amino_seq) == amino_str
     assert (len(str(nucl_seq)) % 3) == 0
     assert len(nucl_seq) == len(amino_seq) * 3
