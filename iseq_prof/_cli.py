@@ -125,6 +125,35 @@ def plot_align(experiment: str, accession: str, output: str):
     ),
 )
 @click.argument("accession", type=str)
+@click.argument(
+    "output",
+    type=click.Path(
+        exists=False, dir_okay=False, file_okay=True, writable=True, resolve_path=True
+    ),
+)
+def plot_eevalues(experiment: str, accession: str, output: str):
+    """
+    Plot e-values.
+    """
+    root = Path(experiment)
+    prof = Profiling(root)
+    prof_acc = prof.read_accession(accession)
+    fig = plot.eevalues(prof_acc)
+    outpath = Path(output)
+    if outpath.suffix == ".html":
+        fig.write_html(str(outpath))
+    else:
+        fig.write_image(str(outpath))
+
+
+@click.command()
+@click.argument(
+    "experiment",
+    type=click.Path(
+        exists=True, dir_okay=True, file_okay=False, readable=True, resolve_path=True
+    ),
+)
+@click.argument("accession", type=str)
 @click.option(
     "--n",
     help="Number of rows to show.",
@@ -419,4 +448,5 @@ cli.add_command(info_prof)
 cli.add_command(info_target)
 cli.add_command(merge_chunks)
 cli.add_command(plot_align)
+cli.add_command(plot_eevalues)
 cli.add_command(plot_roc)

@@ -142,6 +142,8 @@ class ProfAcc:
         df["profile-acc"] = df["att_Profile_acc"]
         df["profile-name"] = df["att_Profile_name"]
         df["e-value"] = df["att_E-value"]
+        # TODO: length should instead be the target length
+        # not the matched length
         df["length"] = df["end"] - df["start"] + 1
         df["true-positive"] = "no"
         types = [SolutSpace.PROF_TARGET, SolutSpace.PROF, SolutSpace.TARGET]
