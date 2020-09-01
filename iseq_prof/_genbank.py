@@ -115,7 +115,7 @@ class GenBank:
             if "protein_id" not in feature.qualifiers:
                 continue
 
-            if feature.strand != 1:
+            if feature.strand != 1 and feature.strand != -1:
                 continue
 
             nucl_rec: SeqRecord = feature.extract(rec)
@@ -126,7 +126,7 @@ class GenBank:
             if is_extended_protein(feature.qualifiers["translation"][0]):
                 continue
 
-            assert self.accession == nucl_rec.id
+            # assert self.accession == nucl_rec.id
 
             amino_rec: SeqRecord = SeqRecord(
                 Seq(feature.qualifiers["translation"][0], IUPAC.protein),
