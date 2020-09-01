@@ -2,6 +2,8 @@ from pathlib import Path
 from typing import List, Optional
 
 import click
+import iseq
+from fasta_reader import open_fasta
 from pandas import DataFrame
 from tabulate import tabulate
 
@@ -179,6 +181,46 @@ def info(experiment: str, accession: str, n: int):
 
     click.echo()
     show_true_table(prof_acc, n)
+
+
+@click.command()
+@click.argument(
+    "experiment",
+    type=click.Path(
+        exists=True, dir_okay=True, file_okay=False, readable=True, resolve_path=True
+    ),
+)
+@click.argument("accession", type=str)
+def progress(experiment: str, accession: str):
+    """
+    Show information about accession.
+    """
+    root = Path(experiment)
+    chunks_dir = Path(root / accession / "chunks")
+    if not chunks_dir.exists():
+        click.echo("  0%")
+
+    assert chunks_dir.is_dir()
+
+    cds_amino_file = root / accession / "cds_amino.fasta"
+    assert cds_amino_file.exists()
+
+    cds_ids = []
+    with open_fasta(cds_amino_file) as file:
+        for item in file:
+            cds_ids.append(item.id.split("|")[0])
+
+    processed_cds_ids = []
+    for f in chunks_dir.glob("*.gff"):
+        gff = iseq.gff.read(f)
+        for item in gff.items():
+            processed_cds_ids.append(item.seqid.split("|")[0])
+
+    cds_set = set(cds_ids)
+    proc_set = set(processed_cds_ids)
+    nremain = len(cds_set - proc_set)
+    perc = int(100 * (1 - round(nremain / len(cds_set))))
+    click.echo(f"{perc:3d}%")
 
 
 @click.command()
@@ -450,3 +492,4 @@ cli.add_command(merge_chunks)
 cli.add_command(plot_align)
 cli.add_command(plot_eevalues)
 cli.add_command(plot_roc)
+cli.add_command(progress)
