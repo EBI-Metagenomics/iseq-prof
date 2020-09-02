@@ -7,12 +7,18 @@ from numpy import linspace, stack
 from pandas import DataFrame, concat
 from tqdm import tqdm
 
+from .._prof_acc import SolutSpace
 from .._profiling import Profiling
 
 __all__ = ["roc"]
 
 
-def roc(prof: Profiling, accessions: Iterable[str]):
+def roc(
+    prof: Profiling,
+    accessions: Iterable[str],
+    solut_space=SolutSpace.PROF_TARGET,
+    solut_space_idx=True,
+):
     """
     ROC plot.
     """
@@ -21,7 +27,7 @@ def roc(prof: Profiling, accessions: Iterable[str]):
     dfs: List[DataFrame] = []
     for acc in tqdm(accessions):
         pa = prof.read_accession(acc)
-        cm = pa.confusion_matrix()
+        cm = pa.confusion_matrix(solut_space, solut_space_idx)
         roc = cm.roc
         matrix = stack((roc.fpr, roc.tpr), axis=1)
         matrix = drop_duplicates(matrix)

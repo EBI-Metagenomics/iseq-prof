@@ -2,8 +2,6 @@ from pathlib import Path
 from typing import List, Optional
 
 import click
-import iseq
-from fasta_reader import open_fasta
 from pandas import DataFrame
 from tabulate import tabulate
 
@@ -72,7 +70,24 @@ def merge_chunks(experiment: str, accessions: Optional[str], force: bool):
         exists=False, dir_okay=False, file_okay=True, writable=True, resolve_path=True
     ),
 )
-def plot_roc(experiment: str, accessions: Optional[str], output: str):
+@click.option(
+    "--solut-space",
+    help="Solution space.",
+    type=click.Choice(["prof-target", "prof", "target"]),
+    default="prof-target",
+)
+@click.option(
+    "--repeat/--no-repeat",
+    help="Duplicated solution awareness. Defaults to True.",
+    default=True,
+)
+def plot_roc(
+    experiment: str,
+    accessions: Optional[str],
+    output: str,
+    solut_space: str,
+    repeat: bool,
+):
     """
     Plot ROC.
     """
@@ -83,7 +98,8 @@ def plot_roc(experiment: str, accessions: Optional[str], output: str):
         accs = prof.accessions
     else:
         accs = accessions.split(",")
-    fig = plot.roc(prof, accs)
+
+    fig = plot.roc(prof, accs, get_solut_space(solut_space), repeat)
     outpath = Path(output)
     if outpath.suffix == ".html":
         fig.write_html(str(outpath))
@@ -196,30 +212,8 @@ def progress(experiment: str, accession: str):
     Show information about accession.
     """
     root = Path(experiment)
-    chunks_dir = Path(root / accession / "chunks")
-    if not chunks_dir.exists():
-        click.echo("  0%")
-
-    assert chunks_dir.is_dir()
-
-    cds_amino_file = root / accession / "cds_amino.fasta"
-    assert cds_amino_file.exists()
-
-    cds_ids = []
-    with open_fasta(cds_amino_file) as file:
-        for item in file:
-            cds_ids.append(item.id.split("|")[0])
-
-    processed_cds_ids = []
-    for f in chunks_dir.glob("*.gff"):
-        gff = iseq.gff.read(f)
-        for item in gff.items():
-            processed_cds_ids.append(item.seqid.split("|")[0])
-
-    cds_set = set(cds_ids)
-    proc_set = set(processed_cds_ids)
-    nremain = len(cds_set - proc_set)
-    perc = int(100 * (1 - round(nremain / len(cds_set))))
+    prof = Profiling(root)
+    perc = int(100 * prof.progress(accession))
     click.echo(f"{perc:3d}%")
 
 
@@ -483,6 +477,15 @@ def space_stat(prof_acc: ProfAcc, space_type: SolutSpace, repeat: bool):
     nt = len(true_sample_space)
     frac = nt / n
     return f"{nt}/{n} = {frac:.5f}"
+
+
+def get_solut_space(solut_space: str) -> SolutSpace:
+    space_types = {
+        "prof-target": SolutSpace.PROF_TARGET,
+        "prof": SolutSpace.PROF,
+        "target": SolutSpace.TARGET,
+    }
+    return space_types[solut_space]
 
 
 cli.add_command(info)

@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable, List, Set
 
+import iseq
 from fasta_reader import FASTAWriter, open_fasta
 from iseq.gff import GFFWriter
 from iseq.gff import read as read_gff
@@ -21,6 +22,32 @@ class Profiling:
         self._params = root / "params.txt"
         assert self._hmmdb.exists()
         assert self._params.exists()
+
+    def progress(self, accession: str) -> float:
+        chunks_dir = Path(self._root / accession / "chunks")
+        if not chunks_dir.exists():
+            return 0.0
+
+        assert chunks_dir.is_dir()
+
+        cds_amino_file = self._root / accession / "cds_amino.fasta"
+        assert cds_amino_file.exists()
+
+        cds_ids = []
+        with open_fasta(cds_amino_file) as file:
+            for item in file:
+                cds_ids.append(item.id.split("|")[0])
+
+        processed_cds_ids = []
+        for f in chunks_dir.glob("*.gff"):
+            gff = iseq.gff.read(f)
+            for item in gff.items():
+                processed_cds_ids.append(item.seqid.split("|")[0])
+
+        cds_set = set(cds_ids)
+        proc_set = set(processed_cds_ids)
+        nremain = len(cds_set - proc_set)
+        return 1 - round(nremain / len(cds_set))
 
     def merge_chunks(self, accessions: Iterable[str], force=False):
         """
