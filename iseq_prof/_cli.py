@@ -178,7 +178,13 @@ def plot_eevalues(experiment: str, accession: str, output: str):
     type=int,
     default=10,
 )
-def info(experiment: str, accession: str, n: int):
+@click.option(
+    "--e-value",
+    help="E-value threshold.",
+    type=float,
+    default=1e-10,
+)
+def info(experiment: str, accession: str, n: int, e_value: float):
     """
     Show information about accession.
     """
@@ -197,6 +203,9 @@ def info(experiment: str, accession: str, n: int):
 
     click.echo()
     show_true_table(prof_acc, n)
+
+    click.echo()
+    show_hit_table(prof_acc, n, e_value)
 
 
 @click.command()
@@ -282,50 +291,23 @@ def info_target(experiment: str, accession: str, target: str, e_value: float):
 
 
 def show_true_table_profile(true_table: DataFrame):
+    true_table["query.name"] = true_table["query.name"].str.replace(r"\|.*", "")
     true_table = true_table.rename(
         columns={
-            "target.name": "t.name",
-            "target.accession": "t.acc",
-            "target.length": "t.len",
-            "query.name": "q.name",
-            "query.accession": "q.acc",
-            "query.length": "q.len",
-            "full_sequence.e_value": "e-value",
-            "full_sequence.score": "fs.score",
-            "full_sequence.bias": "fs.bias",
+            "query.name": "seqid",
+            "target.name": "profile",
+            "target.length": "p.len",
+            "query.length": "s.len",
+            "hmm_coord.start": "p.start",
+            "hmm_coord.stop": "p.stop",
+            "ali_coord.start": "s.start",
+            "ali_coord.stop": "s.stop",
+            "full_sequence.e_value": "fs.e-value",
+            "domain.c_value": "dom.c-value",
+            "domain.i_value": "dom.i-value",
             "description": "desc",
-            "hmm_coord.start": "h.start",
-            "hmm_coord.stop": "h.stop",
-            "ali_coord.start": "a.start",
-            "ali_coord.stop": "a.stop",
         }
     )
-    del true_table["t.acc"]
-    del true_table["q.acc"]
-    del true_table["domain.id"]
-    del true_table["domain.size"]
-    del true_table["domain.c_value"]
-    del true_table["domain.i_value"]
-    del true_table["domain.score"]
-    del true_table["domain.bias"]
-    del true_table["env_coord.start"]
-    del true_table["env_coord.stop"]
-
-    true_table["q.name"] = true_table["q.name"].str.replace(r"\|.*", "")
-    true_table = true_table.rename(
-        columns={
-            "q.name": "seqid",
-            "t.name": "profile",
-            "t.len": "p.len",
-            "q.len": "s.len",
-            "h.start": "p.start",
-            "h.stop": "p.stop",
-            "a.start": "s.start",
-            "a.stop": "s.stop",
-        }
-    )
-    del true_table["fs.score"]
-    del true_table["fs.bias"]
 
     columns = [
         "seqid",
@@ -336,11 +318,15 @@ def show_true_table_profile(true_table: DataFrame):
         "p.len",
         "p.start",
         "p.stop",
-        "e-value",
+        "fs.e-value",
+        "dom.c-value",
+        "dom.i-value",
         "acc",
         "desc",
     ]
     true_table = true_table[columns]
+    true_table["s.start"] = true_table["s.start"].astype(int)
+    true_table = true_table.sort_values(["seqid", "s.start"])
     true_table["s.start"] = (
         true_table["s.start"].astype(str)
         + "/"
@@ -355,7 +341,9 @@ def show_true_table_profile(true_table: DataFrame):
     click.echo(tabulate(table, headers=[title]))
 
 
-def show_hit_table_profile(hit_table: DataFrame):
+def show_hit_table(prof_acc: ProfAcc, n: int, e_value: float):
+    hit_table = prof_acc.hit_table(e_value)
+    hit_table = hit_table.reset_index(drop=True)
     hit_table["e-value"] = hit_table["e-value"].astype(str)
     del hit_table["profile-acc"]
     del hit_table["attributes"]
@@ -381,22 +369,48 @@ def show_hit_table_profile(hit_table: DataFrame):
 
     hit_table["score"] = hit_table["score"].astype(float)
     hit_table = hit_table.sort_values("score", ascending=False)
+    count = hit_table["profile"].value_counts()
+    hit_table = hit_table.drop_duplicates("profile")
+    hit_table = hit_table.set_index("profile")
+    hit_table["hits"] = count
+    hit_table = hit_table.reset_index()
+    hit_table = hit_table[["profile", "e-value", "hits"]]
+    hit_table = hit_table.rename(columns={"e-value": "max(e-value)"})
 
-    del hit_table["att_E-value"]
-    del hit_table["type"]
-    del hit_table["att_Profile_name"]
-    del hit_table["att_Window"]
-    del hit_table["att_Target_alph"]
-    del hit_table["source"]
-    del hit_table["phase"]
-    del hit_table["att_Profile_alph"]
-    del hit_table["att_Profile_acc"]
-    del hit_table["length"]
-    del hit_table["strand"]
+    table = []
+    row = [tabulate(hit_table.head(n=n).values, headers=hit_table.columns)]
+    hit_table = hit_table.sort_values("hits", ascending=False)
+    row.append(tabulate(hit_table.head(n=n).values, headers=hit_table.columns))
+    table.append(row)
+    table = [[tabulate(table, headers=["sort by score", "sort by hits"])]]
+    title = f"hit table ({alphabet} space, top {n} rows, e-value<={e_value})"
+    click.echo(tabulate(table, headers=[title]))
+
+
+def show_hit_table_profile(hit_table: DataFrame):
+    hit_table["e-value"] = hit_table["e-value"].astype(str)
     del hit_table["score"]
-    del hit_table["bias"]
+    del hit_table["id"]
+    hit_table = hit_table.rename(
+        columns={
+            "att_Epsilon": "eps",
+            "att_Score": "score",
+            "profile-name": "profile",
+            "att_Bias": "bias",
+            "att_ID": "id",
+            "start": "s.start",
+            "end": "s.stop",
+            "abs_start": "abs.start",
+            "abs_end": "abs.stop",
+        }
+    )
+    assert all(hit_table["att_Target_alph"] == hit_table["att_Profile_alph"])
+    alphabet = hit_table["att_Target_alph"].iloc[0]
 
     hit_table["seqid"] = hit_table["seqid"].str.replace(r"\|.*", "")
+
+    hit_table = hit_table.sort_values(["seqid", "s.start"])
+
     hit_table["e-value"] = hit_table["e-value"].astype(str)
     hit_table = hit_table[
         [
@@ -409,7 +423,6 @@ def show_hit_table_profile(hit_table: DataFrame):
             "true-positive",
             "abs.start",
             "abs.stop",
-            "eps",
         ]
     ]
 
@@ -421,14 +434,13 @@ def show_hit_table_profile(hit_table: DataFrame):
 def show_true_table(prof_acc: ProfAcc, n: int):
     true_table = prof_acc.true_table()
     true_table = true_table.reset_index(drop=True)
-    true_table = true_table[
-        ["target.name", "full_sequence.e_value", "full_sequence.score"]
-    ]
     true_table = true_table.rename(
         columns={
             "target.name": "profile",
-            "full_sequence.e_value": "fs.e_value",
+            "full_sequence.e_value": "fs.e-value",
             "full_sequence.score": "fs.score",
+            "domain.c_value": "dom.c-value",
+            "domain.i_value": "dom.i-value",
         }
     )
     true_table["fs.score"] = true_table["fs.score"].astype(float)
@@ -436,13 +448,16 @@ def show_true_table(prof_acc: ProfAcc, n: int):
     count = true_table["profile"].value_counts()
     true_table = true_table.drop_duplicates("profile")
     true_table = true_table.set_index("profile")
-    true_table["# hits"] = count
+    true_table["hits"] = count
     true_table = true_table.reset_index()
-    true_table = true_table[["profile", "fs.e_value", "# hits"]]
+    true_table = true_table[
+        ["profile", "fs.e-value", "dom.c-value", "dom.i-value", "hits"]
+    ]
+    true_table = true_table.rename(columns={"fs.e-value": "max(fs.e-value)"})
 
     table = []
     row = [tabulate(true_table.head(n=n).values, headers=true_table.columns)]
-    true_table = true_table.sort_values("# hits", ascending=False)
+    true_table = true_table.sort_values("hits", ascending=False)
     row.append(tabulate(true_table.head(n=n).values, headers=true_table.columns))
     table.append(row)
     table = [[tabulate(table, headers=["sort by score", "sort by hits"])]]

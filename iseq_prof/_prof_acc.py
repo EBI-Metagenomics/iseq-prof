@@ -12,6 +12,7 @@ from fasta_reader import open_fasta
 from hmmer import read_domtbl
 from iseq.gff import GFF
 from iseq.gff import read as read_gff
+from pandas import DataFrame
 
 from ._accession import Accession
 from ._confusion import ConfusionMatrix
@@ -132,10 +133,10 @@ class ProfAcc:
 
         return ConfusionMatrix(true_sample_ids, N, sorted_samples)
 
-    def true_table(self):
+    def true_table(self) -> DataFrame:
         return domtbl_as_dataframe(read_domtbl(self._domtblout_file))
 
-    def hit_table(self, evalue=1e-10):
+    def hit_table(self, evalue=1e-10) -> DataFrame:
         df = self._gff.to_dataframe()
         df = df[df["att_E-value"] <= evalue]
         df["id"] = df["att_ID"]
