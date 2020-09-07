@@ -29,7 +29,10 @@ def eevalues(prof_acc: ProfAcc, evalue=1e-10):
 
     hit_table["seqid"] = hit_table["seqid"].str.replace(r"\|.*", "")
 
-    true_table["e-value"] = true_table["full_seq.e_value"].astype(float)
+    true_table["full_seq.e_value"] = true_table["full_seq.e_value"].astype(float)
+    true_table["domain.i_value"] = true_table["domain.i_value"].astype(float)
+    true_table["domain.c_value"] = true_table["domain.c_value"].astype(float)
+    true_table["e-value"] = true_table["domain.i_value"]
 
     hit_table = hit_table.rename(
         columns={
@@ -45,6 +48,9 @@ def eevalues(prof_acc: ProfAcc, evalue=1e-10):
     true_table = true_table[
         columns
         + [
+            "full_seq.e_value",
+            "domain.i_value",
+            "domain.c_value",
             "hmm_coord.start",
             "hmm_coord.stop",
             "hmm.length",

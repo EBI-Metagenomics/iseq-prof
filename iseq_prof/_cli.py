@@ -199,6 +199,9 @@ def info(experiment: str, accession: str, n: int, e_value: float):
     click.echo(f"Molecule: {acc.molecule}")
 
     click.echo()
+    show_false_tables(prof_acc, e_value)
+
+    click.echo()
     show_space_stat(prof_acc)
 
     click.echo()
@@ -255,7 +258,7 @@ def info_prof(experiment: str, accession: str, profile: str, e_value: float):
     click.echo("")
     hit_table = prof_acc.hit_table(evalue=e_value)
     hit_table = hit_table[hit_table["profile-name"] == profile]
-    show_hit_table_profile(hit_table)
+    show_hit_table_profile(hit_table, e_value)
 
 
 @click.command()
@@ -287,7 +290,7 @@ def info_target(experiment: str, accession: str, target: str, e_value: float):
     click.echo("")
     hit_table = prof_acc.hit_table(evalue=e_value)
     hit_table = hit_table[hit_table["seqid"].str.replace(r"\|.*", "") == target]
-    show_hit_table_profile(hit_table)
+    show_hit_table_profile(hit_table, e_value)
 
 
 def show_true_table_profile(true_table: DataFrame):
@@ -341,6 +344,66 @@ def show_true_table_profile(true_table: DataFrame):
     click.echo(tabulate(table, headers=[title]))
 
 
+def show_false_tables(prof_acc: ProfAcc, e_value: float):
+    hit_table = prof_acc.hit_table(e_value)
+    hit_table = hit_table.reset_index(drop=True)
+    hit_table = hit_table.sort_values(["seqid", "profile", "e-value"])
+    hit_table["e-value"] = hit_table["e-value"].astype(str)
+    hit_table["seqid"] = hit_table["seqid"].str.replace(r"\|.*", "")
+    hit_table = hit_table.rename(
+        columns={
+            "prof_target_hitnum": "hitnum",
+        }
+    )
+    false_positive = hit_table[hit_table["true-positive"] != "prof-target,prof,target"]
+    false_positive = false_positive[["profile", "seqid", "hitnum", "e-value"]]
+    hit_table = hit_table[["profile", "seqid", "hitnum", "e-value"]]
+
+    true_table = prof_acc.true_table()
+    true_table = true_table.rename(
+        columns={
+            "prof_target_hitnum": "hitnum",
+            "full_sequence.e_value": "fs.e-value",
+            "full_sequence.score": "fs.score",
+            "domain.c_value": "dom.c-value",
+            "domain.i_value": "dom.i-value",
+        }
+    )
+    true_table = true_table[
+        ["profile", "seqid", "fs.e-value", "dom.c-value", "dom.i-value", "hitnum"]
+    ]
+    true_table["seqid"] = true_table["seqid"].str.replace(r"\|.*", "")
+    true_table["sel"] = True
+    true_table = true_table.set_index(["profile", "seqid", "hitnum"])
+    true_table = true_table.sort_index()
+    for item in hit_table.itertuples(False):
+        try:
+            true_table.loc[(item.profile, item.seqid, item.hitnum), "sel"] = False
+        except KeyError:
+            pass
+    true_table = true_table.reset_index(drop=False)
+    true_table["sel"] = true_table["sel"].astype(bool)
+    false_negative = true_table[true_table["sel"].values]
+    false_negative = false_negative[
+        ["profile", "seqid", "hitnum", "fs.e-value", "dom.c-value", "dom.i-value"]
+    ]
+
+    false_negative["fs.e-value"] = false_negative["fs.e-value"].astype(str)
+    false_negative["dom.i-value"] = false_negative["dom.i-value"].astype(str)
+    false_negative["dom.c-value"] = false_negative["dom.c-value"].astype(str)
+
+    false_positive = false_positive.sort_values(["profile", "seqid", "hitnum"])
+    table = [[tabulate(false_positive.values, headers=false_positive.columns)]]
+    title = "false positive table"
+    click.echo(tabulate(table, headers=[title]))
+    click.echo()
+
+    false_negative = false_negative.sort_values(["profile", "seqid", "hitnum"])
+    table = [[tabulate(false_negative.values, headers=false_negative.columns)]]
+    title = "false negative table"
+    click.echo(tabulate(table, headers=[title]))
+
+
 def show_hit_table(prof_acc: ProfAcc, n: int, e_value: float):
     hit_table = prof_acc.hit_table(e_value)
     hit_table = hit_table.reset_index(drop=True)
@@ -387,7 +450,7 @@ def show_hit_table(prof_acc: ProfAcc, n: int, e_value: float):
     click.echo(tabulate(table, headers=[title]))
 
 
-def show_hit_table_profile(hit_table: DataFrame):
+def show_hit_table_profile(hit_table: DataFrame, e_value: float):
     hit_table["e-value"] = hit_table["e-value"].astype(str)
     del hit_table["score"]
     del hit_table["id"]
@@ -427,7 +490,7 @@ def show_hit_table_profile(hit_table: DataFrame):
     ]
 
     table = [[tabulate(hit_table.values, headers=hit_table.columns)]]
-    title = f"hit table ({alphabet} space)"
+    title = f"hit table ({alphabet} space, e-value<={e_value})"
     click.echo(tabulate(table, headers=[title]))
 
 

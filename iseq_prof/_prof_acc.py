@@ -12,6 +12,7 @@ from fasta_reader import open_fasta
 from hmmer import read_domtbl
 from iseq.gff import GFF
 from iseq.gff import read as read_gff
+from numpy import dtype
 from pandas import DataFrame
 
 from ._accession import Accession
@@ -134,7 +135,18 @@ class ProfAcc:
         return ConfusionMatrix(true_sample_ids, N, sorted_samples)
 
     def true_table(self) -> DataFrame:
-        return domtbl_as_dataframe(read_domtbl(self._domtblout_file))
+        df = domtbl_as_dataframe(read_domtbl(self._domtblout_file))
+        df["full_sequence.e_value"] = df["full_sequence.e_value"].astype(float)
+        df["domain.i_value"] = df["domain.i_value"].astype(float)
+        df["domain.c_value"] = df["domain.c_value"].astype(float)
+        df["profile"] = df["target.name"]
+        df["seqid"] = df["query.name"]
+        df = set_hitnum(
+            df, "prof_target_hitnum", ["seqid", "profile"], "domain.i_value"
+        )
+        df = set_hitnum(df, "prof_hitnum", ["profile"], "domain.i_value")
+        df = set_hitnum(df, "target_hitnum", ["seqid"], "domain.i_value")
+        return df
 
     def hit_table(self, evalue=1e-10) -> DataFrame:
         df = self._gff.to_dataframe()
@@ -142,6 +154,7 @@ class ProfAcc:
         df["id"] = df["att_ID"]
         df["profile-acc"] = df["att_Profile_acc"]
         df["profile-name"] = df["att_Profile_name"]
+        df["profile"] = df["att_Profile_name"]
         df["e-value"] = df["att_E-value"]
         # TODO: length should instead be the target length
         # not the matched length
@@ -150,19 +163,26 @@ class ProfAcc:
         types = [SolutSpace.PROF_TARGET, SolutSpace.PROF, SolutSpace.TARGET]
         true_samples = {t: self._get_true_samples(t) for t in types}
 
+        df = set_hitnum(df, "prof_target_hitnum", ["seqid", "profile"], "e-value")
+        df = set_hitnum(df, "prof_hitnum", ["profile"], "e-value")
+        df = set_hitnum(df, "target_hitnum", ["seqid"], "e-value")
+
         true_positive = []
         for row in df.itertuples():
 
             tp = []
-            sample = Sample(row.att_Profile_acc, row.seqid.split("|")[0], 0)
+            idx = row.prof_target_hitnum
+            sample = Sample(row.att_Profile_acc, row.seqid.split("|")[0], idx)
             if sample in true_samples[SolutSpace.PROF_TARGET]:
                 tp.append("prof-target")
 
-            sample = Sample(row.att_Profile_acc, "", 0)
+            idx = row.prof_hitnum
+            sample = Sample(row.att_Profile_acc, "", idx)
             if sample in true_samples[SolutSpace.PROF]:
                 tp.append("prof")
 
-            sample = Sample("", row.seqid.split("|")[0], 0)
+            idx = row.target_hitnum
+            sample = Sample("", row.seqid.split("|")[0], idx)
             if sample in true_samples[SolutSpace.TARGET]:
                 tp.append("target")
 
@@ -311,3 +331,21 @@ def get_ordered_output_samples(gff: GFF) -> List[Sample]:
         sample_idx[(profile_acc, target_id)] += 1
 
     return [val[0] for val in sorted(samples, key=lambda i: i[1])]
+
+
+def set_hitnum(df: DataFrame, hitnum_col: str, sort_by: List, e_value_col: str):
+    df[hitnum_col] = 0
+    isinstance(df[e_value_col].dtype, type(dtype("float64")))
+    df = df.sort_values(sort_by + [e_value_col])
+    df = df.reset_index(drop=True)
+    hitnum = 0
+    last = ("",) * len(sort_by)
+    for row in df.itertuples():
+        curr = tuple([getattr(row, k) for k in sort_by])
+        if curr == last:
+            hitnum += 1
+        else:
+            hitnum = 0
+            last = curr
+        df.loc[row.Index, hitnum_col] = hitnum
+    return df
