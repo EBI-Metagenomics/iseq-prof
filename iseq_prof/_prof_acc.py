@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 from dataclasses import dataclass
 from enum import Enum
+from math import nan
 from pathlib import Path
 from typing import Dict, Iterable, List, Set, Tuple
 
@@ -34,6 +35,7 @@ class Sample:
     prof_acc: str
     target_id: str
     idx: int = 0
+    score: float = nan
 
     def astuple(self):
         return (self.prof_acc, self.target_id, self.idx)
@@ -43,6 +45,9 @@ class Sample:
 
     def __lt__(self, you: Sample):
         return self.astuple() < you.astuple()
+
+    def __eq__(self, you: Sample):
+        return self.astuple() == you.astuple()
 
 
 class SolutSpace(Enum):
@@ -114,7 +119,7 @@ class ProfAcc:
     def confusion_matrix(
         self, solut_space=SolutSpace.PROF_TARGET, solut_space_idx=True
     ) -> ConfusionMatrix:
-        from numpy import zeros
+        from numpy import full, inf, zeros
 
         sample_space, true_samples, ordered_sample_hits = self._get_samples(
             solut_space, solut_space_idx
@@ -126,13 +131,15 @@ class ProfAcc:
         P = len(true_sample_ids)
         N = len(sample_space_id) - P
         sorted_samples = zeros(N + P, int)
+        sample_scores = full(N + P, inf)
         for i, sample in enumerate(ordered_sample_hits):
             sorted_samples[i] = sample_space_id[sample]
+            sample_scores[i] = sample.score
 
         for i, sample in enumerate(sample_space - set(ordered_sample_hits)):
             sorted_samples[i + len(ordered_sample_hits)] = sample_space_id[sample]
 
-        return ConfusionMatrix(true_sample_ids, N, sorted_samples)
+        return ConfusionMatrix(true_sample_ids, N, sorted_samples, sample_scores)
 
     def true_table(self) -> DataFrame:
         df = domtbl_as_dataframe(read_domtbl(self._domtblout_file))
@@ -171,7 +178,6 @@ class ProfAcc:
         # TODO: length should instead be the target length
         # not the matched length
         df["length"] = df["end"] - df["start"] + 1
-        df["true_positive"] = "no"
         types = [SolutSpace.PROF_TARGET, SolutSpace.PROF, SolutSpace.TARGET]
         true_samples = {t: self._get_true_samples(t) for t in types}
 
@@ -180,6 +186,9 @@ class ProfAcc:
         df = set_hitnum(df, "target_hitnum", ["seqid"], "e_value")
 
         true_positive = []
+        prof_target_tp = []
+        prof_tp = []
+        target_tp = []
         for row in df.itertuples():
 
             tp = []
@@ -187,23 +196,35 @@ class ProfAcc:
             sample = Sample(row.profile_acc, row.seqid.split("|")[0], idx)
             if sample in true_samples[SolutSpace.PROF_TARGET]:
                 tp.append("prof-target")
+                prof_target_tp.append(True)
+            else:
+                prof_target_tp.append(False)
 
             idx = row.prof_hitnum
             sample = Sample(row.profile_acc, "", idx)
             if sample in true_samples[SolutSpace.PROF]:
                 tp.append("prof")
+                prof_tp.append(True)
+            else:
+                prof_tp.append(False)
 
             idx = row.target_hitnum
             sample = Sample("", row.seqid.split("|")[0], idx)
             if sample in true_samples[SolutSpace.TARGET]:
                 tp.append("target")
+                target_tp.append(True)
+            else:
+                target_tp.append(False)
 
             if len(tp) > 0:
                 true_positive.append(",".join(tp))
             else:
-                true_positive.append("-")
+                true_positive.append("")
 
         df["true_positive"] = true_positive
+        df["prof_target_tp"] = prof_target_tp
+        df["prof_tp"] = prof_tp
+        df["target_tp"] = target_tp
 
         abs_starts = []
         abs_ends = []
@@ -339,7 +360,7 @@ def get_ordered_output_samples(gff: GFF) -> List[Sample]:
             sample_idx[(profile_acc, target_id)] = 0
 
         idx = sample_idx[(profile_acc, target_id)]
-        samples.append((Sample(profile_acc, target_id, idx), evalue))
+        samples.append((Sample(profile_acc, target_id, idx, evalue), evalue))
         sample_idx[(profile_acc, target_id)] += 1
 
     return [val[0] for val in sorted(samples, key=lambda i: i[1])]

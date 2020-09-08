@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pickle
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Optional
 
 __all__ = ["ConfusionMatrix", "ROC"]
 
@@ -22,9 +22,13 @@ class ConfusionMatrix:
     """
 
     def __init__(
-        self, true_samples: Iterable[int], N: int, sorted_samples: Iterable[int]
+        self,
+        true_samples: Iterable[int],
+        N: int,
+        sorted_samples: Iterable[int],
+        sample_scores: Optional[Iterable[float]] = None,
     ):
-        from numpy import asarray, empty
+        from numpy import asarray, empty, linspace
 
         if len(set(sorted_samples) - set(true_samples)) > N:
             raise ValueError("Invalid number of negative samples.")
@@ -32,34 +36,44 @@ class ConfusionMatrix:
         true_arr = asarray(true_samples, int)
         P = len(true_arr)
 
-        sorted_arr = asarray(sorted_samples, int)
+        self._sorted_samples = asarray(sorted_samples, int)
 
-        self._TP = empty(len(sorted_arr) + 1, int)
-        self._FP = empty(len(sorted_arr) + 1, int)
+        self._TP = empty(len(self._sorted_samples) + 1, int)
+        self._FP = empty(len(self._sorted_samples) + 1, int)
 
         self._N = N
         self._P = P
-        self._num_sorted_samples = len(sorted_arr)
-        self._set_tp_fp(true_arr, sorted_arr)
+        self._set_tp_fp(true_arr)
+        if sample_scores is None:
+            sample_scores = linspace(0, 1, len(self._sorted_samples))
+        self._sample_scores = asarray(sample_scores, float)
 
-    def _set_tp_fp(self, true_samples, sorted_samples):
+    @property
+    def sample_scores(self):
+        return self._sample_scores
+
+    def cutpoint(self, score: float) -> int:
+        from numpy import searchsorted
+
+        return searchsorted(self._sample_scores, score, side="right")
+
+    def _set_tp_fp(self, true_samples):
         from numpy import asarray, searchsorted
 
         true_arr = asarray(true_samples, int)
         true_arr.sort()
 
-        sorted_arr = asarray(sorted_samples, int)
-        ins_pos = searchsorted(true_arr, sorted_arr)
+        ins_pos = searchsorted(true_arr, self._sorted_samples)
 
         self._TP[0] = 0
         self._FP[0] = 0
         i = 0
-        while i < len(sorted_arr):
+        while i < len(self._sorted_samples):
             self._FP[i + 1] = self._FP[i]
             self._TP[i + 1] = self._TP[i]
 
             j = ins_pos[i]
-            if j == len(true_arr) or true_arr[j] != sorted_arr[i]:
+            if j == len(true_arr) or true_arr[j] != self._sorted_samples[i]:
                 self._FP[i + 1] += 1
             else:
                 self._TP[i + 1] += 1
@@ -170,7 +184,7 @@ class ConfusionMatrix:
     def roc(self) -> ROC:
         from numpy import argsort
 
-        if self._num_sorted_samples < 1:
+        if len(self._sorted_samples) < 1:
             raise ValueError("Not enough sorted samples.")
 
         tpr = self.tpr

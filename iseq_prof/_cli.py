@@ -202,6 +202,9 @@ def info(experiment: str, accession: str, n: int, e_value: float):
     show_space_stat(prof_acc)
 
     click.echo()
+    show_confusion_table(prof_acc, e_value)
+
+    click.echo()
     show_true_table(prof_acc, n)
 
     click.echo()
@@ -272,12 +275,12 @@ def info_prof(experiment: str, accession: str, profile: str, e_value: float):
     prof_acc = ProfAcc(root / accession)
 
     true_table = prof_acc.true_table()
-    true_table = true_table[true_table["target.name"] == profile]
+    true_table = true_table[true_table["profile"] == profile]
     show_true_table_profile(true_table)
 
-    click.echo("")
+    click.echo()
     hit_table = prof_acc.hit_table(evalue=e_value)
-    hit_table = hit_table[hit_table["profile-name"] == profile]
+    hit_table = hit_table[hit_table["profile"] == profile]
     show_hit_table_profile(hit_table, e_value)
 
 
@@ -304,7 +307,7 @@ def info_target(experiment: str, accession: str, target: str, e_value: float):
     prof_acc = ProfAcc(root / accession)
 
     true_table = prof_acc.true_table()
-    true_table = true_table[true_table["query.name"].str.replace(r"\|.*", "") == target]
+    true_table = true_table[true_table["seqid"].str.replace(r"\|.*", "") == target]
     show_true_table_profile(true_table)
 
     click.echo("")
@@ -314,20 +317,18 @@ def info_target(experiment: str, accession: str, target: str, e_value: float):
 
 
 def show_true_table_profile(true_table: DataFrame):
-    true_table["query.name"] = true_table["query.name"].str.replace(r"\|.*", "")
+    true_table["seqid"] = true_table["seqid"].str.replace(r"\|.*", "")
     true_table = true_table.rename(
         columns={
-            "query.name": "seqid",
-            "target.name": "profile",
             "target.length": "p.len",
             "query.length": "s.len",
             "hmm_coord.start": "p.start",
             "hmm_coord.stop": "p.stop",
             "ali_coord.start": "s.start",
             "ali_coord.stop": "s.stop",
-            "full_sequence.e_value": "fs.e-value",
-            "domain.c_value": "dom.c-value",
-            "domain.i_value": "dom.i-value",
+            "full_sequence.e_value": "fs.e_value",
+            "domain.c_value": "dom.c_value",
+            "domain.i_value": "dom.i_value",
             "description": "desc",
         }
     )
@@ -341,9 +342,9 @@ def show_true_table_profile(true_table: DataFrame):
         "p.len",
         "p.start",
         "p.stop",
-        "fs.e-value",
-        "dom.c-value",
-        "dom.i-value",
+        "fs.e_value",
+        "dom.c_value",
+        "dom.i_value",
         "acc",
         "desc",
     ]
@@ -359,6 +360,9 @@ def show_true_table_profile(true_table: DataFrame):
         true_table["s.stop"].astype(str) + "/" + (true_table["s.stop"] * 3).astype(str)
     )
 
+    true_table["fs.e_value"] = true_table["fs.e_value"].astype(str)
+    true_table["dom.c_value"] = true_table["dom.c_value"].astype(str)
+    true_table["dom.i_value"] = true_table["dom.i_value"].astype(str)
     table = [[tabulate(true_table.values, headers=true_table.columns)]]
     title = "true table (amino acid space / nucleotide space)"
     click.echo(tabulate(table, headers=[title]))
@@ -375,7 +379,7 @@ def show_false_tables(prof_acc: ProfAcc, e_value: float):
             "prof_target_hitnum": "hitnum",
         }
     )
-    false_positive = hit_table[hit_table["true_positive"] != "prof-target,prof,target"]
+    false_positive = hit_table[~hit_table["prof_target_tp"]]
     false_positive = false_positive[["profile", "seqid", "hitnum", "e_value"]]
     hit_table = hit_table[["profile", "seqid", "hitnum", "e_value"]]
 
@@ -436,7 +440,10 @@ def show_hit_table(prof_acc: ProfAcc, n: int, e_value: float):
         }
     )
     assert all(hit_table["target_alph"] == hit_table["profile_alph"])
-    alphabet = hit_table["target_alph"].iloc[0]
+    if hit_table.shape[0] > 0:
+        alphabet = hit_table["target_alph"].iloc[0]
+    else:
+        alphabet = "unknown"
 
     hit_table["score"] = hit_table["score"].astype(float)
     hit_table = hit_table.sort_values("score", ascending=False)
@@ -459,30 +466,26 @@ def show_hit_table(prof_acc: ProfAcc, n: int, e_value: float):
 
 
 def show_hit_table_profile(hit_table: DataFrame, e_value: float):
-    hit_table["e-value"] = hit_table["e-value"].astype(str)
-    del hit_table["score"]
-    del hit_table["id"]
+    hit_table["e_value"] = hit_table["e_value"].astype(str)
     hit_table = hit_table.rename(
         columns={
-            "att_Epsilon": "eps",
-            "att_Score": "score",
-            "profile-name": "profile",
-            "att_Bias": "bias",
-            "att_ID": "id",
             "start": "s.start",
             "end": "s.stop",
             "abs_start": "abs.start",
             "abs_end": "abs.stop",
         }
     )
-    assert all(hit_table["att_Target_alph"] == hit_table["att_Profile_alph"])
-    alphabet = hit_table["att_Target_alph"].iloc[0]
+    assert all(hit_table["target_alph"] == hit_table["profile_alph"])
+    if hit_table.shape[0] > 0:
+        alphabet = hit_table["target_alph"].iloc[0]
+    else:
+        alphabet = "unknown"
 
     hit_table["seqid"] = hit_table["seqid"].str.replace(r"\|.*", "")
 
     hit_table = hit_table.sort_values(["seqid", "s.start"])
 
-    hit_table["e-value"] = hit_table["e-value"].astype(str)
+    hit_table["e_value"] = hit_table["e_value"].astype(str)
     hit_table = hit_table[
         [
             "seqid",
@@ -490,8 +493,8 @@ def show_hit_table_profile(hit_table: DataFrame, e_value: float):
             "s.stop",
             "profile",
             "id",
-            "e-value",
-            "true-positive",
+            "e_value",
+            "true_positive",
             "abs.start",
             "abs.stop",
         ]
@@ -553,6 +556,42 @@ def show_space_stat(prof_acc: ProfAcc):
     table = [[tabulate(table, headers=["space", "no repeat", "repeat"])]]
     title = "solution space (true / total)"
     click.echo(tabulate(table, headers=[title]))
+
+
+def show_confusion_table(prof_acc: ProfAcc, e_value: float):
+    cm = prof_acc.confusion_matrix()
+    i = cm.cutpoint(e_value)
+    TP = str(cm.TP[i])
+    FP = str(cm.FP[i])
+    FN = str(cm.FN[i])
+    TN = str(cm.TN[i])
+
+    cell1 = [["actual"], tabulate([["P", "N"]], tablefmt="plain")]
+    cell2 = [["predicted", tabulate([["P"], ["N"]], tablefmt="plain")]]
+    cell3 = [[TP, FP], [FN, TN]]
+
+    table = [
+        ["", tabulate(cell1, tablefmt="plain")],
+        [tabulate(cell2, tablefmt="plain"), tabulate(cell3, tablefmt="plain")],
+    ]
+
+    table = [[tabulate(table, tablefmt="plain")]]
+    title = f"confusion table (e-value<={e_value})"
+    click.echo(tabulate(table, headers=[title]))
+
+    table = [
+        [
+            f"{cm.sensitivity[i]}",
+            f"{cm.specifity[i]}",
+            f"{cm.accuracy[i]}",
+            f"{cm.f1score[i]}",
+        ]
+    ]
+    headers = ["sensitivity", "specifity", "accuracy", "f1-score"]
+    table = [[tabulate(table, headers=headers)]]
+    click.echo()
+    title = f"scoring (e-value<={e_value})"
+    click.echo(tabulate([[tabulate(table)]], headers=[title], tablefmt="plain"))
 
 
 def space_stat(prof_acc: ProfAcc, space_type: SolutSpace, repeat: bool):
