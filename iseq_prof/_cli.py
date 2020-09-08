@@ -199,9 +199,6 @@ def info(experiment: str, accession: str, n: int, e_value: float):
     click.echo(f"Molecule: {acc.molecule}")
 
     click.echo()
-    show_false_tables(prof_acc, e_value)
-
-    click.echo()
     show_space_stat(prof_acc)
 
     click.echo()
@@ -209,6 +206,29 @@ def info(experiment: str, accession: str, n: int, e_value: float):
 
     click.echo()
     show_hit_table(prof_acc, n, e_value)
+
+
+@click.command()
+@click.argument(
+    "experiment",
+    type=click.Path(
+        exists=True, dir_okay=True, file_okay=False, readable=True, resolve_path=True
+    ),
+)
+@click.argument("accession", type=str)
+@click.option(
+    "--e-value",
+    help="E-value threshold.",
+    type=float,
+    default=1e-10,
+)
+def info_fail(experiment: str, accession: str, e_value: float):
+    """
+    Show information about accession.
+    """
+    root = Path(experiment)
+    prof_acc = ProfAcc(root / accession)
+    show_false_tables(prof_acc, e_value)
 
 
 @click.command()
@@ -347,30 +367,29 @@ def show_true_table_profile(true_table: DataFrame):
 def show_false_tables(prof_acc: ProfAcc, e_value: float):
     hit_table = prof_acc.hit_table(e_value)
     hit_table = hit_table.reset_index(drop=True)
-    hit_table = hit_table.sort_values(["seqid", "profile", "e-value"])
-    hit_table["e-value"] = hit_table["e-value"].astype(str)
+    hit_table = hit_table.sort_values(["seqid", "profile", "e_value"])
+    hit_table["e_value"] = hit_table["e_value"].astype(str)
     hit_table["seqid"] = hit_table["seqid"].str.replace(r"\|.*", "")
     hit_table = hit_table.rename(
         columns={
             "prof_target_hitnum": "hitnum",
         }
     )
-    false_positive = hit_table[hit_table["true-positive"] != "prof-target,prof,target"]
-    false_positive = false_positive[["profile", "seqid", "hitnum", "e-value"]]
-    hit_table = hit_table[["profile", "seqid", "hitnum", "e-value"]]
+    false_positive = hit_table[hit_table["true_positive"] != "prof-target,prof,target"]
+    false_positive = false_positive[["profile", "seqid", "hitnum", "e_value"]]
+    hit_table = hit_table[["profile", "seqid", "hitnum", "e_value"]]
 
     true_table = prof_acc.true_table()
     true_table = true_table.rename(
         columns={
             "prof_target_hitnum": "hitnum",
-            "full_sequence.e_value": "fs.e-value",
-            "full_sequence.score": "fs.score",
-            "domain.c_value": "dom.c-value",
-            "domain.i_value": "dom.i-value",
+            "full_sequence.e_value": "fs.e_value",
+            "domain.c_value": "dom.c_value",
+            "domain.i_value": "dom.i_value",
         }
     )
     true_table = true_table[
-        ["profile", "seqid", "fs.e-value", "dom.c-value", "dom.i-value", "hitnum"]
+        ["profile", "seqid", "fs.e_value", "dom.c_value", "dom.i_value", "hitnum"]
     ]
     true_table["seqid"] = true_table["seqid"].str.replace(r"\|.*", "")
     true_table["sel"] = True
@@ -385,12 +404,12 @@ def show_false_tables(prof_acc: ProfAcc, e_value: float):
     true_table["sel"] = true_table["sel"].astype(bool)
     false_negative = true_table[true_table["sel"].values]
     false_negative = false_negative[
-        ["profile", "seqid", "hitnum", "fs.e-value", "dom.c-value", "dom.i-value"]
+        ["profile", "seqid", "hitnum", "fs.e_value", "dom.c_value", "dom.i_value"]
     ]
 
-    false_negative["fs.e-value"] = false_negative["fs.e-value"].astype(str)
-    false_negative["dom.i-value"] = false_negative["dom.i-value"].astype(str)
-    false_negative["dom.c-value"] = false_negative["dom.c-value"].astype(str)
+    false_negative["fs.e_value"] = false_negative["fs.e_value"].astype(str)
+    false_negative["dom.i_value"] = false_negative["dom.i_value"].astype(str)
+    false_negative["dom.c_value"] = false_negative["dom.c_value"].astype(str)
 
     false_positive = false_positive.sort_values(["profile", "seqid", "hitnum"])
     table = [[tabulate(false_positive.values, headers=false_positive.columns)]]
@@ -407,28 +426,17 @@ def show_false_tables(prof_acc: ProfAcc, e_value: float):
 def show_hit_table(prof_acc: ProfAcc, n: int, e_value: float):
     hit_table = prof_acc.hit_table(e_value)
     hit_table = hit_table.reset_index(drop=True)
-    hit_table["e-value"] = hit_table["e-value"].astype(str)
-    del hit_table["profile-acc"]
-    del hit_table["attributes"]
-    del hit_table["id"]
-    del hit_table["score"]
+    hit_table["e_value"] = hit_table["e_value"].astype(str)
     hit_table = hit_table.rename(
         columns={
-            "att_Epsilon": "eps",
-            "att_Score": "score",
-            "profile-name": "profile",
-            "att_Bias": "bias",
-            "att_ID": "id",
             "start": "s.start",
             "end": "s.stop",
             "abs_start": "abs.start",
             "abs_end": "abs.stop",
         }
     )
-    hit_table["att_Target_alph"]
-    hit_table["att_Profile_alph"]
-    assert all(hit_table["att_Target_alph"] == hit_table["att_Profile_alph"])
-    alphabet = hit_table["att_Target_alph"].iloc[0]
+    assert all(hit_table["target_alph"] == hit_table["profile_alph"])
+    alphabet = hit_table["target_alph"].iloc[0]
 
     hit_table["score"] = hit_table["score"].astype(float)
     hit_table = hit_table.sort_values("score", ascending=False)
@@ -437,8 +445,8 @@ def show_hit_table(prof_acc: ProfAcc, n: int, e_value: float):
     hit_table = hit_table.set_index("profile")
     hit_table["hits"] = count
     hit_table = hit_table.reset_index()
-    hit_table = hit_table[["profile", "e-value", "hits"]]
-    hit_table = hit_table.rename(columns={"e-value": "max(e-value)"})
+    hit_table = hit_table[["profile", "e_value", "hits"]]
+    hit_table = hit_table.rename(columns={"e_value": "max(e_value)"})
 
     table = []
     row = [tabulate(hit_table.head(n=n).values, headers=hit_table.columns)]
@@ -499,11 +507,10 @@ def show_true_table(prof_acc: ProfAcc, n: int):
     true_table = true_table.reset_index(drop=True)
     true_table = true_table.rename(
         columns={
-            "target.name": "profile",
-            "full_sequence.e_value": "fs.e-value",
+            "full_sequence.e_value": "fs.e_value",
             "full_sequence.score": "fs.score",
-            "domain.c_value": "dom.c-value",
-            "domain.i_value": "dom.i-value",
+            "domain.c_value": "dom.c_value",
+            "domain.i_value": "dom.i_value",
         }
     )
     true_table["fs.score"] = true_table["fs.score"].astype(float)
@@ -514,9 +521,9 @@ def show_true_table(prof_acc: ProfAcc, n: int):
     true_table["hits"] = count
     true_table = true_table.reset_index()
     true_table = true_table[
-        ["profile", "fs.e-value", "dom.c-value", "dom.i-value", "hits"]
+        ["profile", "fs.e_value", "dom.c_value", "dom.i_value", "hits"]
     ]
-    true_table = true_table.rename(columns={"fs.e-value": "max(fs.e-value)"})
+    true_table = true_table.rename(columns={"fs.e_value": "max(fs.e_value)"})
 
     table = []
     row = [tabulate(true_table.head(n=n).values, headers=true_table.columns)]
@@ -544,7 +551,7 @@ def show_space_stat(prof_acc: ProfAcc):
         )
 
     table = [[tabulate(table, headers=["space", "no repeat", "repeat"])]]
-    title = "solution space"
+    title = "solution space (true / total)"
     click.echo(tabulate(table, headers=[title]))
 
 
@@ -574,3 +581,4 @@ cli.add_command(plot_align)
 cli.add_command(plot_eevalues)
 cli.add_command(plot_roc)
 cli.add_command(progress)
+cli.add_command(info_fail)

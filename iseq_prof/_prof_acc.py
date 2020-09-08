@@ -149,35 +149,47 @@ class ProfAcc:
         return df
 
     def hit_table(self, evalue=1e-10) -> DataFrame:
-        df = self._gff.to_dataframe()
-        df = df[df["att_E-value"] <= evalue]
-        df["id"] = df["att_ID"]
-        df["profile-acc"] = df["att_Profile_acc"]
-        df["profile-name"] = df["att_Profile_name"]
-        df["profile"] = df["att_Profile_name"]
-        df["e-value"] = df["att_E-value"]
+        gff = self._gff.filter(max_e_value=evalue)
+        df = gff.to_dataframe()
+        del df["score"]
+        df = df.rename(
+            columns={
+                "att_E-value": "e_value",
+                "att_Profile_acc": "profile_acc",
+                "att_Score": "score",
+                "att_Profile_name": "profile_name",
+                "att_ID": "id",
+                "att_Profile_alph": "profile_alph",
+                "att_Epsilon": "epsilon",
+                "att_Window": "window",
+                "att_Bias": "bias",
+                "att_Target_alph": "target_alph",
+            }
+        )
+        # df = df[df["e_value"] <= evalue]
+        df["profile"] = df["profile_name"]
         # TODO: length should instead be the target length
         # not the matched length
         df["length"] = df["end"] - df["start"] + 1
-        df["true-positive"] = "no"
+        df["true_positive"] = "no"
         types = [SolutSpace.PROF_TARGET, SolutSpace.PROF, SolutSpace.TARGET]
         true_samples = {t: self._get_true_samples(t) for t in types}
 
-        df = set_hitnum(df, "prof_target_hitnum", ["seqid", "profile"], "e-value")
-        df = set_hitnum(df, "prof_hitnum", ["profile"], "e-value")
-        df = set_hitnum(df, "target_hitnum", ["seqid"], "e-value")
+        df = set_hitnum(df, "prof_target_hitnum", ["seqid", "profile"], "e_value")
+        df = set_hitnum(df, "prof_hitnum", ["profile"], "e_value")
+        df = set_hitnum(df, "target_hitnum", ["seqid"], "e_value")
 
         true_positive = []
         for row in df.itertuples():
 
             tp = []
             idx = row.prof_target_hitnum
-            sample = Sample(row.att_Profile_acc, row.seqid.split("|")[0], idx)
+            sample = Sample(row.profile_acc, row.seqid.split("|")[0], idx)
             if sample in true_samples[SolutSpace.PROF_TARGET]:
                 tp.append("prof-target")
 
             idx = row.prof_hitnum
-            sample = Sample(row.att_Profile_acc, "", idx)
+            sample = Sample(row.profile_acc, "", idx)
             if sample in true_samples[SolutSpace.PROF]:
                 tp.append("prof")
 
@@ -191,11 +203,11 @@ class ProfAcc:
             else:
                 true_positive.append("-")
 
-        df["true-positive"] = true_positive
+        df["true_positive"] = true_positive
 
         abs_starts = []
         abs_ends = []
-        for row in df.itertuples():
+        for row in df.itertuples(False):
             v = row.seqid.split("|")[0].split(":")[1]
             ref_start = int(v.split("-")[0])
             abs_start = ref_start + row.start - 1
