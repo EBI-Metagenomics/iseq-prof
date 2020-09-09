@@ -56,6 +56,69 @@ def merge_chunks(experiment: str, accessions: Optional[str], force: bool):
 @click.argument(
     "experiment",
     type=click.Path(
+        exists=True, dir_okay=True, file_okay=False, readable=True, resolve_path=False
+    ),
+)
+@click.option(
+    "--accessions",
+    type=str,
+    default=None,
+    help="Comma-separated accessions or None for all accessions. Defaults to None.",
+)
+@click.argument(
+    "output",
+    type=click.Path(
+        exists=False, dir_okay=False, file_okay=True, writable=True, resolve_path=True
+    ),
+)
+@click.option(
+    "--solut-space",
+    help="Solution space.",
+    type=click.Choice(["prof-target", "prof", "target"]),
+    default="prof-target",
+)
+@click.option(
+    "--repeat/--no-repeat",
+    help="Duplicated solution awareness. Defaults to True.",
+    default=True,
+)
+@click.option(
+    "--e-value",
+    help="E-value threshold.",
+    type=float,
+    default=1e-10,
+)
+def plot_scores(
+    experiment: str,
+    accessions: Optional[str],
+    output: str,
+    solut_space: str,
+    repeat: bool,
+    e_value: float,
+):
+    """
+    Plot score distribution.
+    """
+    root = Path(experiment)
+    prof = Profiling(root)
+    accs: List[str] = []
+    if accessions is None:
+        accs = prof.accessions
+    else:
+        accs = accessions.split(",")
+
+    fig = plot.scores(prof, accs, e_value, get_solut_space(solut_space), repeat)
+    outpath = Path(output)
+    if outpath.suffix == ".html":
+        fig.write_html(str(outpath))
+    else:
+        fig.write_image(str(outpath))
+
+
+@click.command()
+@click.argument(
+    "experiment",
+    type=click.Path(
         exists=True, dir_okay=True, file_okay=False, readable=True, resolve_path=True
     ),
 )
