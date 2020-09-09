@@ -22,6 +22,8 @@ goodboy = pooch.create(
         "Pfam-A_24.hmm.gz": "32791a1b50837cbe1fca1376a3e1c45bc84b32dd4fe28c92fd276f3f2c3a15e3",
         "gb238.catalog.tsv.gz": "b8b7d21f5e533f1afab5d54544729d6efb8df30c6114de717633bc5afb3f1dce",
         "AE014075.1.gb.gz": "827328678b7038ed2125e8ee57e3bceb5e4abad3df62cdb9e809ac2fbbb02a08",
+        "CP041245.1_amino.fasta.gz": "5afe702f46c0dfd0fd23bf60b02a94d101cc62e7762085f4f3a45162cdf6b6b8",
+        "CP041245.1_nucl.fasta.gz": "76fcfe371714ea7a56a13542eb492d1ebef31dc6bba23a1e178b3106cf4ccc5b",
     },
 )
 
