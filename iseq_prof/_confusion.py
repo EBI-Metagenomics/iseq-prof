@@ -4,7 +4,7 @@ import pickle
 from pathlib import Path
 from typing import Iterable, Optional
 
-__all__ = ["ConfusionMatrix", "ROC"]
+__all__ = ["ConfusionMatrix", "ROCCurve", "PRCurve"]
 
 
 class ConfusionMatrix:
@@ -36,16 +36,17 @@ class ConfusionMatrix:
         true_arr = asarray(true_samples, int)
         P = len(true_arr)
 
-        self._sorted_samples = asarray(sorted_samples, int)
+        sorted_arr = asarray(sorted_samples, int)
+        self._num_sorted_samples = len(sorted_arr)
 
-        self._TP = empty(len(self._sorted_samples) + 1, int)
-        self._FP = empty(len(self._sorted_samples) + 1, int)
+        self._TP = empty(len(sorted_arr) + 1, int)
+        self._FP = empty(len(sorted_arr) + 1, int)
 
         self._N = N
         self._P = P
-        self._set_tp_fp(true_arr)
+        self._set_tp_fp(true_arr, sorted_arr)
         if sample_scores is None:
-            sample_scores = linspace(0, 1, len(self._sorted_samples))
+            sample_scores = linspace(0, 1, len(sorted_arr))
         self._sample_scores = asarray(sample_scores, float)
 
     @property
@@ -57,23 +58,23 @@ class ConfusionMatrix:
 
         return searchsorted(self._sample_scores, score, side="right")
 
-    def _set_tp_fp(self, true_samples):
+    def _set_tp_fp(self, true_samples, sorted_samples):
         from numpy import asarray, searchsorted
 
         true_arr = asarray(true_samples, int)
         true_arr.sort()
 
-        ins_pos = searchsorted(true_arr, self._sorted_samples)
+        ins_pos = searchsorted(true_arr, sorted_samples)
 
         self._TP[0] = 0
         self._FP[0] = 0
         i = 0
-        while i < len(self._sorted_samples):
+        while i < len(sorted_samples):
             self._FP[i + 1] = self._FP[i]
             self._TP[i + 1] = self._TP[i]
 
             j = ins_pos[i]
-            if j == len(true_arr) or true_arr[j] != self._sorted_samples[i]:
+            if j == len(true_arr) or true_arr[j] != sorted_samples[i]:
                 self._FP[i + 1] += 1
             else:
                 self._TP[i + 1] += 1
@@ -181,23 +182,64 @@ class ConfusionMatrix:
         return 2 * self.TP / (2 * self.TP + self.FP + self.FN)
 
     @property
-    def roc(self) -> ROC:
+    def roc_curve(self) -> ROCCurve:
         from numpy import argsort
 
-        if len(self._sorted_samples) < 1:
+        if self._num_sorted_samples < 1:
             raise ValueError("Not enough sorted samples.")
 
-        tpr = self.tpr
-        fpr = self.fpr
+        idx = argsort(self.fpr, kind="stable")
+        return ROCCurve(self.fpr[idx], self.tpr[idx])
 
-        idx = argsort(fpr, kind="stable")
-        fpr = fpr[idx]
-        tpr = tpr[idx]
+    @property
+    def pr_curve(self) -> PRCurve:
+        from numpy import argsort
 
-        return ROC(fpr, tpr)
+        if self._num_sorted_samples < 1:
+            raise ValueError("Not enough sorted samples.")
+
+        idx = argsort(self.recall, kind="stable")
+        return PRCurve(self.recall[idx], self.precision[idx])
 
 
-class ROC:
+class PRCurve:
+    """
+    Precision-Recall curve.
+    """
+
+    def __init__(self, recall: Iterable[float], precision: Iterable[float]):
+        from numpy import asarray
+
+        self._recall = asarray(recall, float)[1:]
+        self._precision = asarray(precision, float)[1:]
+
+    @property
+    def recall(self):
+        return self._recall
+
+    @property
+    def precision(self):
+        return self._precision
+
+    @property
+    def auc(self) -> float:
+        return auc(self.recall, self.precision)
+
+    def plot(self, ax=None):
+        xlabel = "recall (sensitivity)"
+        ylabel = "precision"
+        title = f"Precision-Recall curve (area={self.auc:6.4f})"
+        ax = plot(self.recall, self.precision, xlabel, ylabel, title, ax)
+        ax.plot([0, 1], [1, 0], linestyle="--")
+        ax.legend(loc="lower left")
+        return ax
+
+
+class ROCCurve:
+    """
+    ROC curve.
+    """
+
     def __init__(self, fpr: Iterable[float], tpr: Iterable[float]):
         from numpy import asarray
 
@@ -214,27 +256,39 @@ class ROC:
 
     @property
     def auc(self) -> float:
-        left = self.fpr[0]
-        area = 0.0
-        for i in range(1, len(self.fpr)):
-            width = self.fpr[i] - left
-            area += width * self.tpr[i - 1]
-            left = self.fpr[i]
-        area += (1 - left) * self.tpr[-1]
-        return area
+        return auc(self.fpr, self.tpr)
 
     def plot(self, ax=None):
-        import seaborn as sns
-        from matplotlib import pyplot as plt
-
-        sns.set(color_codes=True)
-
-        if ax is None:
-            ax = plt.subplots()[1]
+        xlabel = "false positive rate"
+        ylabel = "true positive rate"
+        title = f"ROC curve (area={self.auc:6.4f})"
+        ax = plot(self.fpr, self.tpr, xlabel, ylabel, title, ax)
         ax.plot([0, 1], [0, 1], linestyle="--")
-        ax.plot(self.fpr, self.tpr, label=f"ROC curve (area={self.auc:6.4f})")
-        ax.set_xlabel("false positive rate")
-        ax.set_ylabel("true positive rate")
         ax.legend(loc="lower right")
-
         return ax
+
+
+def plot(x, y, xlabel, ylabel, title, ax):
+    import seaborn as sns
+    from matplotlib import pyplot as plt
+
+    sns.set(color_codes=True)
+
+    if ax is None:
+        ax = plt.subplots()[1]
+    ax.plot(x, y, label=title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    return ax
+
+
+def auc(x, y) -> float:
+    left = x[0]
+    area = 0.0
+    for i in range(1, len(x)):
+        width = x[i] - left
+        area += width * y[i - 1]
+        left = x[i]
+    area += (1 - left) * y[-1]
+    return area
