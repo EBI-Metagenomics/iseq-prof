@@ -126,8 +126,6 @@ class GenBank:
             if is_extended_protein(feature.qualifiers["translation"][0]):
                 continue
 
-            # assert self.accession == nucl_rec.id
-
             amino_rec: SeqRecord = SeqRecord(
                 Seq(feature.qualifiers["translation"][0]),
                 # Seq(feature.qualifiers["translation"][0], IUPAC.protein),
