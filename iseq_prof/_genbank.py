@@ -2,7 +2,7 @@ from pathlib import Path
 
 import nmm
 from Bio import Entrez, SeqIO
-from Bio.Alphabet import IUPAC, DNAAlphabet, RNAAlphabet
+from Bio.Data import IUPACData
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from iseq.codon_table import CodonTable
@@ -129,7 +129,8 @@ class GenBank:
             # assert self.accession == nucl_rec.id
 
             amino_rec: SeqRecord = SeqRecord(
-                Seq(feature.qualifiers["translation"][0], IUPAC.protein),
+                Seq(feature.qualifiers["translation"][0]),
+                # Seq(feature.qualifiers["translation"][0], IUPAC.protein),
                 id=nucl_rec.id,
                 name=nucl_rec.name,
                 description=nucl_rec.description,
@@ -168,38 +169,53 @@ class GenBank:
 
 def is_alphabet_ambiguous(seq):
 
-    if isinstance(seq.alphabet, DNAAlphabet):
-        remains = len(set(str(seq)) - set(IUPAC.unambiguous_dna.letters))
-        if remains > 0:
-            return True
+    # if isinstance(seq.alphabet, DNAAlphabet):
+    remains = len(set(str(seq)) - set(IUPACData.unambiguous_dna_letters))
+    if remains == 0:
+        return False
+    # if remains > 0:
+    #     return True
 
-    elif isinstance(seq.alphabet, RNAAlphabet):
-        remains = len(set(str(seq)) - set(IUPAC.unambiguous_rna.letters))
-        if remains > 0:
-            return True
+    remains = len(set(str(seq)) - set(IUPACData.unambiguous_rna_letters))
+    if remains == 0:
+        return False
 
-    else:
-        raise ValueError("Unkown alphabet.")
+    # elif isinstance(seq.alphabet, RNAAlphabet):
+    #     remains = len(set(str(seq)) - set(IUPACData.unambiguous_rna_letters))
+    #     if remains > 0:
+    #         return True
 
-    return False
+    return True
+    # else:
+    #     raise ValueError("Unkown alphabet.")
+
+    # return False
 
 
 def get_nucl_alphabet(seq):
-    if isinstance(seq.alphabet, DNAAlphabet):
-        remains = len(set(str(seq)) - set(IUPAC.unambiguous_dna.letters))
-        assert remains == 0
+    remains = len(set(str(seq)) - set(IUPACData.unambiguous_dna_letters))
+    if remains == 0:
         return "dna"
 
-    if isinstance(seq.alphabet, RNAAlphabet):
-        remains = len(set(str(seq)) - set(IUPAC.unambiguous_rna.letters))
-        assert remains == 0
+    remains = len(set(str(seq)) - set(IUPACData.unambiguous_rna_letters))
+    if remains == 0:
         return "rna"
+
+    # if isinstance(seq.alphabet, DNAAlphabet):
+    #     remains = len(set(str(seq)) - set(IUPAC.unambiguous_dna.letters))
+    #     assert remains == 0
+    #     return "dna"
+
+    # if isinstance(seq.alphabet, RNAAlphabet):
+    #     remains = len(set(str(seq)) - set(IUPAC.unambiguous_rna.letters))
+    #     assert remains == 0
+    #     return "rna"
 
     raise ValueError("Unkown alphabet.")
 
 
 def is_extended_protein(seq: str):
-    remains = len(set(seq) - set(IUPAC.protein.letters))
+    remains = len(set(seq) - set(IUPACData.protein_letters))
     return remains > 0
 
 
