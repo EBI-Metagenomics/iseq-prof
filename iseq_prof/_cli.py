@@ -107,6 +107,7 @@ def plot_scores(
     else:
         accs = accessions.split(",")
 
+    accs = [acc for acc in accs if len(acc) > 0]
     fig = plot.scores(prof, accs, e_value, get_solut_space(solut_space), repeat)
     outpath = Path(output)
     if outpath.suffix == ".html":
