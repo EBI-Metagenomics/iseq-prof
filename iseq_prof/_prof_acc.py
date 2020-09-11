@@ -33,20 +33,17 @@ class GenBank:
 
 class Sample:
     def __init__(self, prof_acc: str, target_id: str, idx: int = 0, score: float = nan):
-        self.prof_acc = prof_acc
-        self.target_id = target_id
-        self.idx = idx
         self.score = score
-        self._hash = hash((self.prof_acc, self.target_id, self.idx))
+        self._hash = hash((prof_acc, target_id, idx))
 
-    def astuple(self) -> Tuple[str, str, int]:
-        return (self.prof_acc, self.target_id, self.idx)
+    # def astuple(self) -> Tuple[str, str, int]:
+    #     return (self.prof_acc, self.target_id, self.idx)
 
     def __hash__(self) -> int:
         return self._hash
 
-    def __lt__(self, you: Sample):
-        return self.astuple() < you.astuple()
+    # def __lt__(self, you: Sample):
+    #     return hash(self) == hash(you)
 
     def __eq__(self, you: Sample):  # type: ignore[override]
         return hash(self) == hash(you)
