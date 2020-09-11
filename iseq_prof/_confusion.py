@@ -4,6 +4,8 @@ import pickle
 from pathlib import Path
 from typing import Iterable, Optional
 
+import numba
+
 __all__ = ["ConfusionMatrix", "ROCCurve", "PRCurve"]
 
 
@@ -59,26 +61,11 @@ class ConfusionMatrix:
         return searchsorted(self._sample_scores, score, side="right")
 
     def _set_tp_fp(self, true_samples, sorted_samples):
-        from numpy import asarray, searchsorted
+        from numpy import searchsorted
 
-        true_arr = asarray(true_samples, int)
-        true_arr.sort()
-
-        ins_pos = searchsorted(true_arr, sorted_samples)
-
-        self._TP[0] = 0
-        self._FP[0] = 0
-        i = 0
-        while i < len(sorted_samples):
-            self._FP[i + 1] = self._FP[i]
-            self._TP[i + 1] = self._TP[i]
-
-            j = ins_pos[i]
-            if j == len(true_arr) or true_arr[j] != sorted_samples[i]:
-                self._FP[i + 1] += 1
-            else:
-                self._TP[i + 1] += 1
-            i += 1
+        true_samples.sort()
+        ins_pos = searchsorted(true_samples, sorted_samples)
+        set_tp_fp(self._TP, self._FP, ins_pos, true_samples, sorted_samples)
 
     def write_pickle(self, filepath: Path):
         with open(filepath, "wb") as file:
@@ -202,6 +189,26 @@ class ConfusionMatrix:
         return PRCurve(self.recall[idx], self.precision[idx])
 
 
+T = numba.int_[:]
+
+
+@numba.njit(numba.void(T, T, T, T, T), cache=True)
+def set_tp_fp(TP, FP, ins_pos, true_samples, sorted_samples):
+    TP[0] = 0
+    FP[0] = 0
+    i = 0
+    while i < sorted_samples.shape[0]:
+        FP[i + 1] = FP[i]
+        TP[i + 1] = TP[i]
+
+        j = ins_pos[i]
+        if j == len(true_samples) or true_samples[j] != sorted_samples[i]:
+            FP[i + 1] += 1
+        else:
+            TP[i + 1] += 1
+        i += 1
+
+
 class PRCurve:
     """
     Precision-Recall curve.
@@ -283,6 +290,7 @@ def plot(x, y, xlabel, ylabel, title, ax):
     return ax
 
 
+@numba.njit(numba.float64(numba.float64[:], numba.float64[:]), cache=True)
 def auc(x, y) -> float:
     left = x[0]
     area = 0.0

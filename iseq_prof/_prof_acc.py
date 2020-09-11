@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
 from math import nan
@@ -24,30 +25,32 @@ from ._tables import domtbl_as_dataframe
 __all__ = ["ProfAcc", "Sample", "SolutSpace"]
 
 
-@dataclass
+@dataclass(frozen=True)
 class GenBank:
     kingdom: str
     description: str
 
 
-@dataclass
 class Sample:
-    prof_acc: str
-    target_id: str
-    idx: int = 0
-    score: float = nan
+    def __init__(self, prof_acc: str, target_id: str, idx: int = 0, score: float = nan):
+        self.prof_acc = prof_acc
+        self.target_id = target_id
+        self.idx = idx
+        self.score = score
+        self._hash = hash((self.prof_acc, self.target_id, self.idx))
 
-    def astuple(self):
+    def astuple(self) -> Tuple[str, str, int]:
         return (self.prof_acc, self.target_id, self.idx)
 
-    def __hash__(self):
-        return hash((self.prof_acc, self.target_id, self.idx))
+    def __hash__(self) -> int:
+        return self._hash
 
     def __lt__(self, you: Sample):
         return self.astuple() < you.astuple()
 
-    def __eq__(self, you: Sample):
-        return self.astuple() == you.astuple()
+    def __eq__(self, you: Sample):  # type: ignore[override]
+        return hash(self) == hash(you)
+        # return self.astuple() == you.astuple()
 
 
 class SolutSpace(Enum):
@@ -125,7 +128,7 @@ class ProfAcc:
             solut_space, solut_space_idx
         )
 
-        sample_space_id = {s: i for i, s in enumerate(sorted(sample_space))}
+        sample_space_id = {s: i for i, s in enumerate(sample_space)}
         true_sample_ids = [sample_space_id[k] for k in true_samples]
 
         P = len(true_sample_ids)
@@ -327,8 +330,8 @@ def generate_sample_space(hmmer_file, target_file) -> Set[Sample]:
     for target in open_fasta(target_file):
         target_ids.append(target.id.split("|")[0])
 
-    samples = [Sample(a, i, 0) for a, i in itertools.product(prof_accs, target_ids)]
-    return set(samples)
+    samples = set(Sample(a, i, 0) for a, i in itertools.product(prof_accs, target_ids))
+    return samples
 
 
 def get_domtblout_samples(domtblout_file) -> Set[Sample]:
@@ -349,21 +352,19 @@ def get_domtblout_samples(domtblout_file) -> Set[Sample]:
 
 
 def get_ordered_output_samples(gff: GFF) -> List[Sample]:
-    samples: List[Tuple[Sample, float]] = []
-    sample_idx: Dict[Tuple[str, str], int] = {}
+    samples: List[Sample] = []
+    sample_idx: Dict[Tuple[str, str], int] = defaultdict(lambda: 0)
     for item in gff.items():
-        profile_acc = dict(item.attributes_astuple())["Profile_acc"]
-        evalue = float(dict(item.attributes_astuple())["E-value"])
+        atts = dict(item.attributes_astuple())
+        profile_acc = atts["Profile_acc"]
+        evalue = float(atts["E-value"])
         target_id = item.seqid.split("|")[0]
 
-        if (profile_acc, target_id) not in sample_idx:
-            sample_idx[(profile_acc, target_id)] = 0
-
         idx = sample_idx[(profile_acc, target_id)]
-        samples.append((Sample(profile_acc, target_id, idx, evalue), evalue))
+        samples.append(Sample(profile_acc, target_id, idx, evalue))
         sample_idx[(profile_acc, target_id)] += 1
 
-    return [val[0] for val in sorted(samples, key=lambda i: i[1])]
+    return [val for val in sorted(samples, key=lambda s: s.score)]
 
 
 def set_hitnum(df: DataFrame, hitnum_col: str, sort_by: List, e_value_col: str):
