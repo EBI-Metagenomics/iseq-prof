@@ -6,7 +6,7 @@ from pandas import DataFrame
 from tabulate import tabulate
 
 from . import plot
-from ._prof_acc import ProfAcc, SolutSpace
+from ._prof_acc import ProfAcc, Score, SolutSpace
 from ._profiling import Profiling
 
 
@@ -114,6 +114,51 @@ def plot_scores(
         fig.write_html(str(outpath))
     else:
         fig.write_image(str(outpath))
+
+
+@click.command()
+@click.argument(
+    "experiment",
+    type=click.Path(
+        exists=True, dir_okay=True, file_okay=False, readable=True, resolve_path=False
+    ),
+)
+@click.argument(
+    "accession",
+    type=str,
+)
+@click.option(
+    "--e-value",
+    help="E-value threshold.",
+    type=float,
+    default=1e-10,
+)
+def save_scores(
+    experiment: str,
+    accession: str,
+    e_value: float,
+):
+    """
+    Plot score distribution.
+    """
+    root = Path(experiment)
+    prof = Profiling(root)
+
+    pa = prof.read_accession(accession)
+
+    space_types = [SolutSpace.PROF_TARGET, SolutSpace.PROF, SolutSpace.TARGET]
+    rows = []
+    for space_type in space_types:
+        for repeat in [True, False]:
+            score = pa.score(e_value, space_type, repeat)
+            row = score.asdict()
+            row["space_type"] = space_type.name
+            row["space_repeat"] = repeat
+            rows.append(row)
+
+    df = DataFrame(rows)
+    df = df[["space_type", "space_repeat"] + Score.field_names()]
+    df.to_csv(root / accession / "scores.csv", sep=",", index=False)
 
 
 @click.command()
@@ -686,3 +731,4 @@ cli.add_command(plot_roc)
 cli.add_command(progress)
 cli.add_command(info_fail)
 cli.add_command(plot_scores)
+cli.add_command(save_scores)

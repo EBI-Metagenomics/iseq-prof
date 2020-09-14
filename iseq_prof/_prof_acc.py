@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import dataclasses
 import itertools
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
 from math import nan
 from pathlib import Path
-from typing import Dict, Iterable, List, Set, Tuple
+from typing import Any, Dict, Iterable, List, Set, Tuple, Type
 
 import hmmer_reader
 from Bio import SeqIO
@@ -31,23 +32,41 @@ class GenBank:
     description: str
 
 
-class Sample:
-    def __init__(self, prof_acc: str, target_id: str, idx: int = 0, score: float = nan):
-        self.score = score
-        self._hash = hash((prof_acc, target_id, idx))
+@dataclass(frozen=True)
+class Score:
+    sensitivity: float
+    specifity: float
+    roc_auc: float
+    pr_auc: float
 
-    # def astuple(self) -> Tuple[str, str, int]:
-    #     return (self.prof_acc, self.target_id, self.idx)
+    def asdict(self):
+        return dataclasses.asdict(self)
+
+    @classmethod
+    def field_names(cls) -> List[str]:
+        return [f.name for f in dataclasses.fields(cls)]
+
+    @classmethod
+    def field_types(cls) -> List[Type[Any]]:
+        return [f.type for f in dataclasses.fields(cls)]
+
+
+@dataclass
+class Sample:
+    prof_acc: str
+    target_id: str
+    idx: int = 0
+    score: float = nan
+    _hash: int = dataclasses.field(init=False)
+
+    def __post_init__(self):
+        self._hash = hash((self.prof_acc, self.target_id, self.idx))
 
     def __hash__(self) -> int:
         return self._hash
 
-    # def __lt__(self, you: Sample):
-    #     return hash(self) == hash(you)
-
     def __eq__(self, you: Sample):  # type: ignore[override]
         return hash(self) == hash(you)
-        # return self.astuple() == you.astuple()
 
 
 class SolutSpace(Enum):
@@ -73,6 +92,7 @@ class ProfAcc:
         sample_space: Set[Sample] = generate_sample_space(hmmer_file, cds_nucl_file)
         true_samples = get_domtblout_samples(domtblout_file)
         self._gff = read_gff(output_file)
+        self._gff.ravel()
         ordered_sample_hits = get_ordered_output_samples(self._gff)
         sample_space |= true_samples | set(ordered_sample_hits)
 
@@ -140,6 +160,17 @@ class ProfAcc:
             sorted_samples[i + len(ordered_sample_hits)] = sample_space_id[sample]
 
         return ConfusionMatrix(true_sample_ids, N, sorted_samples, sample_scores)
+
+    def score(
+        self, e_value: float, solut_space=SolutSpace.PROF_TARGET, solut_space_idx=True
+    ) -> Score:
+        cm = self.confusion_matrix(solut_space, solut_space_idx)
+        i = cm.cutpoint(e_value)
+        sensitivity = cm.sensitivity[i]
+        specifity = cm.specifity[i]
+        roc_auc = cm.roc_curve.auc
+        pr_auc = cm.pr_curve.auc
+        return Score(sensitivity, specifity, roc_auc, pr_auc)
 
     def true_table(self) -> DataFrame:
         df = domtbl_as_dataframe(read_domtbl(self._domtblout_file))
@@ -334,7 +365,7 @@ def generate_sample_space(hmmer_file, target_file) -> Set[Sample]:
 def get_domtblout_samples(domtblout_file) -> Set[Sample]:
     samples = []
     sample_idx: Dict[Tuple[str, str], int] = {}
-    for row in iter(read_domtbl(domtblout_file)):
+    for row in read_domtbl(domtblout_file):
         profile_acc = row.target.accession
         target_id = row.query.name.split("|")[0]
 
@@ -351,7 +382,7 @@ def get_domtblout_samples(domtblout_file) -> Set[Sample]:
 def get_ordered_output_samples(gff: GFF) -> List[Sample]:
     samples: List[Sample] = []
     sample_idx: Dict[Tuple[str, str], int] = defaultdict(lambda: 0)
-    for item in gff.items():
+    for item in gff.items:
         atts = dict(item.attributes_astuple())
         profile_acc = atts["Profile_acc"]
         evalue = float(atts["E-value"])

@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Iterable
 
 import plotly.express as px
@@ -9,15 +8,6 @@ from .._prof_acc import SolutSpace
 from .._profiling import Profiling
 
 __all__ = ["scores"]
-
-
-@dataclass
-class Score:
-    accession: str
-    sensitivity: float
-    specifity: float
-    roc_auc: float
-    pr_auc: float
 
 
 def scores(
@@ -33,14 +23,9 @@ def scores(
     scores_ = []
     for acc in tqdm(accessions):
         pa = prof.read_accession(acc)
-        cm = pa.confusion_matrix(solut_space, solut_space_idx)
-        i = cm.cutpoint(e_value)
-        sensitivity = cm.sensitivity[i]
-        specifity = cm.specifity[i]
-        roc_auc = cm.roc_curve.auc
-        pr_auc = cm.pr_curve.auc
-        scores_.append(Score(acc, sensitivity, specifity, roc_auc, pr_auc))
+        scores_.append(pa.score(e_value, solut_space, solut_space_idx))
     df = DataFrame(scores_)
+    df["accession"] = accessions
 
     dimensions = ["sensitivity", "specifity", "roc_auc", "pr_auc"]
     fig = px.scatter_matrix(df, dimensions=dimensions, color="accession")
