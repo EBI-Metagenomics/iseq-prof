@@ -92,7 +92,6 @@ class ProfAcc:
         sample_space: Set[Sample] = generate_sample_space(hmmer_file, cds_nucl_file)
         true_samples = get_domtblout_samples(domtblout_file)
         self._gff = read_gff(output_file)
-        self._gff.ravel()
         ordered_sample_hits = get_ordered_output_samples(self._gff)
         sample_space |= true_samples | set(ordered_sample_hits)
 
@@ -381,16 +380,17 @@ def get_domtblout_samples(domtblout_file) -> Set[Sample]:
 
 def get_ordered_output_samples(gff: GFF) -> List[Sample]:
     samples: List[Sample] = []
-    sample_idx: Dict[Tuple[str, str], int] = defaultdict(lambda: 0)
+    sample_idx: Dict[int, int] = defaultdict(lambda: 0)
     for item in gff.items:
         atts = dict(item.attributes_astuple())
         profile_acc = atts["Profile_acc"]
         evalue = float(atts["E-value"])
         target_id = item.seqid.split("|")[0]
 
-        idx = sample_idx[(profile_acc, target_id)]
+        ikey = hash((profile_acc, target_id))
+        idx = sample_idx[ikey]
         samples.append(Sample(profile_acc, target_id, idx, evalue))
-        sample_idx[(profile_acc, target_id)] += 1
+        sample_idx[ikey] += 1
 
     return [val for val in sorted(samples, key=lambda s: s.score)]
 
