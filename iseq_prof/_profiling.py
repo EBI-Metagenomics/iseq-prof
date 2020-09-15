@@ -41,8 +41,8 @@ class Profiling:
         processed_cds_ids = []
         for f in chunks_dir.glob("*.gff"):
             gff = iseq.gff.read(f)
-            for item in gff.items():
-                processed_cds_ids.append(item.seqid.split("|")[0])
+            ids = gff.dataframe["seqid"].str.replace(r"\|.*", "")
+            processed_cds_ids += ids.tolist()
 
         cds_set = set(cds_ids)
         proc_set = set(processed_cds_ids)
