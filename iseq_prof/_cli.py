@@ -133,15 +133,25 @@ def plot_scores(
     type=float,
     default=1e-10,
 )
+@click.option(
+    "--force/--no-force",
+    help="Enable overwrite of files. Defaults to False.",
+    default=False,
+)
 def save_scores(
     experiment: str,
     accession: str,
     e_value: float,
+    force: bool,
 ):
     """
     Plot score distribution.
     """
     root = Path(experiment)
+    output = root / accession / "scores.csv"
+    if not force and output.exists():
+        return
+
     prof = Profiling(root)
 
     pa = prof.read_accession(accession)
@@ -158,7 +168,7 @@ def save_scores(
 
     df = DataFrame(rows)
     df = df[["space_type", "space_repeat"] + Score.field_names()]
-    df.to_csv(root / accession / "scores.csv", sep=",", index=False)
+    df.to_csv(output, sep=",", index=False)
 
 
 @click.command()
