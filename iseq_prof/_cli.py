@@ -1,3 +1,4 @@
+import gc
 from pathlib import Path
 from typing import List, Optional
 
@@ -160,6 +161,7 @@ def save_scores(
     rows = []
     for space_type in space_types:
         for repeat in [True, False]:
+            gc.collect()
             score = pa.score(e_value, space_type, repeat)
             row = score.asdict()
             row["space_type"] = space_type.name
