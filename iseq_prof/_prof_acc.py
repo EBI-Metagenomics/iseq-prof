@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
+import gc
 import itertools
 from collections import defaultdict
 from dataclasses import dataclass
@@ -91,9 +92,11 @@ class ProfAcc:
 
         sample_space: Set[Sample] = generate_sample_space(hmmer_file, cds_nucl_file)
         true_samples = get_domtblout_samples(domtblout_file)
+        sample_space |= true_samples
         self._gff = read_gff(output_file)
+        gc.collect()
         ordered_sample_hits = get_ordered_output_samples(self._gff)
-        sample_space |= true_samples | set(ordered_sample_hits)
+        sample_space = sample_space.union(ordered_sample_hits)
 
         self._sample_space: Set[Sample] = sample_space
         self._true_samples: Set[Sample] = true_samples
