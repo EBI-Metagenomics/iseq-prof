@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import dataclasses
-import gc
 import itertools
 from collections import defaultdict
 from dataclasses import dataclass
@@ -94,7 +93,6 @@ class ProfAcc:
         true_samples = get_domtblout_samples(domtblout_file)
         sample_space |= true_samples
         self._gff = read_gff(output_file)
-        gc.collect()
         ordered_sample_hits = get_ordered_output_samples(self._gff)
         sample_space = sample_space.union(ordered_sample_hits)
 
@@ -395,7 +393,9 @@ def get_ordered_output_samples(gff: GFF) -> List[Sample]:
         samples.append(Sample(profile_acc, target_id, idx, evalue))
         sample_idx[ikey] += 1
 
-    return [val for val in sorted(samples, key=lambda s: s.score)]
+    del sample_idx
+    samples.sort(key=lambda s: s.score)
+    return samples
 
 
 def set_hitnum(df: DataFrame, hitnum_col: str, sort_by: List, e_value_col: str):
