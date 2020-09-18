@@ -82,8 +82,8 @@ class Profiling:
         accs = [i for i in self._root.glob("*") if i.is_dir()]
         return [acc.name for acc in accs]
 
-    def read_accession(self, accession: str) -> ProfAcc:
-        return ProfAcc(self._root / accession)
+    def read_accession(self, accession: str, low_memory=False) -> ProfAcc:
+        return ProfAcc(self._root / accession, low_memory)
 
 
 def merge_chunks(acc_path: Path):

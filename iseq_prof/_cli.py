@@ -1,4 +1,3 @@
-import gc
 from pathlib import Path
 from typing import List, Optional
 
@@ -155,13 +154,12 @@ def save_scores(
 
     prof = Profiling(root)
 
-    pa = prof.read_accession(accession)
+    pa = prof.read_accession(accession, low_memory=True)
 
     space_types = [SolutSpace.PROF_TARGET, SolutSpace.PROF, SolutSpace.TARGET]
     rows = []
     for space_type in space_types:
         for repeat in [True, False]:
-            gc.collect()
             score = pa.score(e_value, space_type, repeat)
             row = score.asdict()
             row["space_type"] = space_type.name
