@@ -193,8 +193,10 @@ class ProfAcc:
     def hit_table(self, evalue=1e-10) -> DataFrame:
         if self._gff is None:
             self._gff = read_gff(self._output_file)
-        gff = self._gff.filter(max_e_value=evalue)
-        df = gff.to_dataframe()
+        self._gff.ravel()
+        df = self._gff.dataframe
+        df["att_E-value"] = df["att_E-value"].astype(float)
+        df = df[df["att_E-value"] <= evalue]
         del df["score"]
         df = df.rename(
             columns={
