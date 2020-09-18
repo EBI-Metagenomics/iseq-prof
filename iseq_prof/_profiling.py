@@ -111,15 +111,15 @@ def merge_chunks(acc_path: Path):
 
 def merge_files(prefix: str, ext: str, acc_path: Path, chunks: List[int], skip: bool):
     folder = acc_path / "chunks"
-    ofilepath = acc_path / f"{prefix}.{ext}"
-    with open(ofilepath, "w") as ofile:
+    tmp_path = acc_path / f".{prefix}.{ext}"
+    with open(tmp_path, "w") as ofile:
         for j, i in enumerate(chunks):
             with open(folder / f"{prefix}.{i}.{ext}", "r") as ifile:
                 if j > 0 and skip:
                     ifile.readline()
                 ofile.write(ifile.read())
 
-    return ofilepath
+    return tmp_path.rename(acc_path / f"{prefix}.{ext}")
 
 
 def normalize_files(output: Path, oamino: Path, ocodon: Path, verbose: bool):
