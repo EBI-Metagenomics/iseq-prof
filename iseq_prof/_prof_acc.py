@@ -76,7 +76,7 @@ class SolutSpace(Enum):
 
 
 class ProfAcc:
-    def __init__(self, accdir: Path):
+    def __init__(self, accdir: Path, low_memory=False):
         hmmer_file = accdir / "dbspace.hmm"
         cds_nucl_file = accdir / "cds_nucl.fasta"
         domtblout_file = accdir / "domtblout.txt"
@@ -89,11 +89,15 @@ class ProfAcc:
         assert_file_exist(output_file)
         assert_file_exist(genbank)
 
+        self._gff = read_gff(output_file)
+        ordered_sample_hits = get_ordered_output_samples(self._gff)
+        if low_memory:
+            del self._gff
+            self._gff = None
+
         sample_space: Set[Sample] = generate_sample_space(hmmer_file, cds_nucl_file)
         true_samples = get_domtblout_samples(domtblout_file)
         sample_space |= true_samples
-        self._gff = read_gff(output_file)
-        ordered_sample_hits = get_ordered_output_samples(self._gff)
         sample_space = sample_space.union(ordered_sample_hits)
 
         self._sample_space: Set[Sample] = sample_space
@@ -187,6 +191,8 @@ class ProfAcc:
         return df
 
     def hit_table(self, evalue=1e-10) -> DataFrame:
+        if self._gff is None:
+            self._gff = read_gff(self._output_file)
         gff = self._gff.filter(max_e_value=evalue)
         df = gff.to_dataframe()
         del df["score"]
@@ -376,6 +382,7 @@ def get_domtblout_samples(domtblout_file) -> Set[Sample]:
         samples.append(Sample(profile_acc, target_id, idx))
         sample_idx[(profile_acc, target_id)] += 1
 
+    del sample_idx
     return set(samples)
 
 
@@ -386,7 +393,7 @@ def get_ordered_output_samples(gff: GFF) -> List[Sample]:
         atts = dict(item.attributes_astuple())
         profile_acc = atts["Profile_acc"]
         evalue = float(atts["E-value"])
-        target_id = item.seqid.split("|")[0]
+        target_id = item.seqid.partition("|")[0]
 
         ikey = hash((profile_acc, target_id))
         idx = sample_idx[ikey]
