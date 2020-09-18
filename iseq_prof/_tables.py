@@ -34,6 +34,8 @@ def tuplify(a):
     for i in a:
         if isinstance(i, tuple):
             r.append(i)
+        elif isinstance(i, dict):
+            r.append(tuple(i.values()))
         else:
             r.append((i,))
     return r
@@ -46,6 +48,9 @@ def extract_columns(tbl_row):
         if isinstance(v0, tuple):
             for k1 in v0._asdict().keys():
                 columns.append(col + "." + k1)
+        elif isinstance(v0, dict):
+            for k1 in v0.keys():
+                columns.append(col + "." + k1)
         else:
             columns.append(col)
     return columns
@@ -57,6 +62,9 @@ def extract_types(tbl_row):
         if isinstance(i, tuple):
             for v in i._field_types.values():
                 types.append(v)
+        elif isinstance(i, dict):
+            for v in i.values():
+                types.append(type(v))
         else:
             types.append(type(i))
     return types
