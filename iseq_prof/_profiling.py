@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable, List, Set
+from typing import Iterable, List, Optional, Set
 
 import iseq
 from fasta_reader import FASTAWriter, open_fasta
@@ -10,7 +10,7 @@ from iseq.gff import read as read_gff
 from tqdm import tqdm
 
 from ._file import inplace
-from ._prof_acc import ProfAcc
+from ._prof_acc import ProfAcc, ProfAccFiles
 
 __all__ = ["Profiling"]
 
@@ -49,22 +49,37 @@ class Profiling:
         nremain = len(cds_set - proc_set)
         return 1 - round(nremain / len(cds_set))
 
-    def merge_chunks(self, accessions: Iterable[str], force=False):
+    def merge_chunks(self, accession: str, force=False):
         """
         Merge ISEQ chunked files.
 
         Parameters
         ----------
+        accession
+            Accession.
         force
             Overwrite existing files if necessary. Defaults to ``False``.
         """
         names = ["output.gff", "oamino.fasta", "ocodon.fasta"]
 
-        for acc in tqdm(list(accessions), desc="Merge"):
-            folder = self._root / acc
-            if not force and all((folder / n).exists() for n in names):
-                continue
-            merge_chunks(folder)
+        root = self._root / accession
+        if not force and all((root / n).exists() for n in names):
+            files = [n for n in names if (root / n).exists()]
+            files_list = ", ".join(files)
+            raise ValueError(f"File(s) {files_list} already exist.")
+
+        folder = root / "chunks"
+        globs = ["output.*.gff", "oamino.*.fasta", "ocodon.*.fasta"]
+        chunks: List[Set[int]] = [set(), set(), set()]
+        for i, glob in enumerate(globs):
+            for f in folder.glob(glob):
+                chunks[i].add(int(f.name.split(".")[1]))
+
+        chunks_set = chunks[0] & chunks[1] & chunks[2]
+        nums = list(chunks_set)
+        merge_files("output", "gff", root, nums, True)
+        merge_files("oamino", "fasta", root, nums, False)
+        merge_files("ocodon", "fasta", root, nums, False)
 
     def normalize_iseq_files(self, accessions: Iterable[str], verbose=True):
         """
@@ -82,31 +97,10 @@ class Profiling:
         accs = [i for i in self._root.glob("*") if i.is_dir()]
         return [acc.name for acc in accs]
 
-    def read_accession(self, accession: str, low_memory=False) -> ProfAcc:
-        return ProfAcc(self._root / accession, low_memory)
-
-
-def merge_chunks(acc_path: Path):
-    """
-    Merge ISEQ result chunks.
-
-    Parameters
-    ----------
-    acc_path
-        Accession path.
-    """
-    folder = acc_path / "chunks"
-    globs = ["output.*.gff", "oamino.*.fasta", "ocodon.*.fasta"]
-    chunks: List[Set[int]] = [set(), set(), set()]
-    for i, glob in enumerate(globs):
-        for f in folder.glob(glob):
-            chunks[i].add(int(f.name.split(".")[1]))
-
-    chunks_set = chunks[0] & chunks[1] & chunks[2]
-    nums = list(chunks_set)
-    merge_files("output", "gff", acc_path, nums, True)
-    merge_files("oamino", "fasta", acc_path, nums, False)
-    merge_files("ocodon", "fasta", acc_path, nums, False)
+    def read_accession(
+        self, accession: str, low_memory=False, files: Optional[ProfAccFiles] = None
+    ) -> ProfAcc:
+        return ProfAcc(self._root / accession, low_memory, files)
 
 
 def merge_files(prefix: str, ext: str, acc_path: Path, chunks: List[int], skip: bool):

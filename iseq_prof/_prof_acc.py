@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 from math import nan
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Set, Tuple, Type
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Type
 
 import hmmer_reader
 from Bio import SeqIO
@@ -23,7 +23,7 @@ from ._confusion import ConfusionMatrix
 from ._file import assert_file_exist
 from ._tables import domtbl_as_dataframe
 
-__all__ = ["ProfAcc", "Sample", "SolutSpace"]
+__all__ = ["ProfAcc", "Sample", "SolutSpace", "ProfAccFiles"]
 
 
 @dataclass(frozen=True)
@@ -75,12 +75,24 @@ class SolutSpace(Enum):
     TARGET = 3
 
 
+@dataclass
+class ProfAccFiles:
+    hmmer: str = "dbspace.hmm"
+    cds_nucl: str = "cds_nucl.fasta"
+    domtblout: str = "domtblout.txt"
+    output: str = "output.gff"
+
+
 class ProfAcc:
-    def __init__(self, accdir: Path, low_memory=False):
-        hmmer_file = accdir / "dbspace.hmm"
-        cds_nucl_file = accdir / "cds_nucl.fasta"
-        domtblout_file = accdir / "domtblout.txt"
-        output_file = accdir / "output.gff"
+    def __init__(
+        self, accdir: Path, low_memory=False, files: Optional[ProfAccFiles] = None
+    ):
+        if files is None:
+            files = ProfAccFiles()
+        hmmer_file = accdir / files.hmmer
+        cds_nucl_file = accdir / files.cds_nucl
+        domtblout_file = accdir / files.domtblout
+        output_file = accdir / files.output
         genbank = accdir / f"{accdir.name}.gb"
 
         assert_file_exist(hmmer_file)
