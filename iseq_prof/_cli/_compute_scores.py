@@ -3,7 +3,7 @@ from pathlib import Path
 import click
 import pandas as pd
 
-from .._prof_acc import Score, SolutSpaceType
+from .._prof_acc import SampleType, Score
 from .._profiling import Profiling
 
 __all__ = ["compute_scores"]
@@ -50,9 +50,9 @@ def compute_scores(
     pa = prof.read_accession(accession, low_memory=True)
 
     space_types = [
-        SolutSpaceType.PROF_TARGET,
-        SolutSpaceType.PROF,
-        SolutSpaceType.TARGET,
+        SampleType.PROF_TARGET,
+        SampleType.PROF,
+        SampleType.TARGET,
     ]
     rows = []
     for space_type in space_types:

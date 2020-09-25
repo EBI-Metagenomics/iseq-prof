@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 
 from iseq_prof import Profiling, example_filepath
+from iseq_prof.solut_space import SampleType, SolutSpaceType
 from numpy.testing import assert_allclose
 
 
@@ -60,7 +61,7 @@ def test_profiling(tmp_path):
         1.0,
         1.0,
     ]
-    cm = pa.confusion_matrix()
+    cm = pa.confusion_matrix(SolutSpaceType(SampleType.PROF_TARGET, False))
     assert_allclose(cm.tpr[: len(tpr)], tpr)
     fpr = [
         0.0,

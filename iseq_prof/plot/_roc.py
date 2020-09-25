@@ -7,7 +7,7 @@ from numpy import linspace, stack
 from pandas import DataFrame, concat
 from tqdm import tqdm
 
-from .._prof_acc import SolutSpaceType
+from .._prof_acc import SampleType
 from .._profiling import Profiling
 
 __all__ = ["roc"]
@@ -16,7 +16,7 @@ __all__ = ["roc"]
 def roc(
     prof: Profiling,
     accessions: Iterable[str],
-    solut_space=SolutSpaceType.PROF_TARGET,
+    solut_space=SampleType.PROF_TARGET,
     solut_space_idx=True,
 ):
     """

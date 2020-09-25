@@ -1,14 +1,14 @@
 from importlib import import_module as _import_module
 
 from . import _typing as typing
-from . import fasta, plot
+from . import fasta, plot, solut_space
 from ._accession import Accession
 from ._cli import cli
 from ._confusion import ConfusionMatrix
 from ._env import ISEQ_PROF_CACHE_HOME
 from ._example import example_filepath
 from ._genbank import GenBank, genbank_catalog
-from ._prof_acc import ProfAcc, SolutSpaceType
+from ._prof_acc import ProfAcc
 from ._profiling import Profiling
 from ._testit import test
 
@@ -24,7 +24,6 @@ __all__ = [
     "ISEQ_PROF_CACHE_HOME",
     "ProfAcc",
     "Profiling",
-    "SolutSpaceType",
     "__version__",
     "cli",
     "example_filepath",
@@ -32,6 +31,7 @@ __all__ = [
     "genbank",
     "genbank_catalog",
     "plot",
+    "solut_space",
     "test",
     "typing",
 ]

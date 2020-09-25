@@ -3,7 +3,8 @@ from pathlib import Path
 import click
 from tabulate import tabulate
 
-from .._prof_acc import ProfAcc, SolutSpaceType
+from .._prof_acc import ProfAcc
+from ..solut_space import SampleType, SolutSpaceType
 
 __all__ = ["info"]
 
@@ -56,21 +57,21 @@ def info(experiment: str, accession: str, n: int, e_value: float):
 
 
 def show_space_stat(prof_acc: ProfAcc):
-    space_types = [
-        SolutSpaceType.PROF_TARGET,
-        SolutSpaceType.PROF,
-        SolutSpaceType.TARGET,
+    sample_types = [
+        SampleType.PROF_TARGET,
+        SampleType.PROF,
+        SampleType.TARGET,
     ]
 
     table = []
-    for space_type in space_types:
-        label = space_type.name.lower().replace("_", "-")
+    for sample_type in sample_types:
+        label = sample_type.name.lower().replace("_", "-")
 
         table.append(
             [
                 label,
-                space_stat(prof_acc, space_type, False),
-                space_stat(prof_acc, space_type, True),
+                space_stat(prof_acc, SolutSpaceType(sample_type, True)),
+                space_stat(prof_acc, SolutSpaceType(sample_type, False)),
             ]
         )
 
@@ -80,7 +81,7 @@ def show_space_stat(prof_acc: ProfAcc):
 
 
 def show_confusion_table(prof_acc: ProfAcc, e_value: float):
-    cm = prof_acc.confusion_matrix()
+    cm = prof_acc.confusion_matrix(SolutSpaceType(SampleType.PROF_TARGET, False))
     i = cm.cutpoint(e_value)
     TP = str(cm.TP[i])
     FP = str(cm.FP[i])
@@ -115,9 +116,9 @@ def show_confusion_table(prof_acc: ProfAcc, e_value: float):
     click.echo(tabulate([[tabulate(table)]], headers=[title], tablefmt="plain"))
 
 
-def space_stat(prof_acc: ProfAcc, space_type: SolutSpaceType, repeat: bool):
-    sample_space = prof_acc.sample_space(space_type, repeat)
-    true_sample_space = prof_acc.true_sample_space(space_type, repeat)
+def space_stat(prof_acc: ProfAcc, space_type: SolutSpaceType):
+    sample_space = prof_acc._solut_space.samples(space_type)
+    true_sample_space = prof_acc._solut_space.true_sample_space(space_type)
     n = len(sample_space)
     nt = len(true_sample_space)
     frac = nt / n
