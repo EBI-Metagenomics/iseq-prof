@@ -1,5 +1,6 @@
 import click
 
+from ._compute_clans import compute_clans
 from ._compute_scores import compute_scores
 from ._info import info
 from ._info_fail import info_fail
@@ -27,6 +28,7 @@ def cli():
     """
 
 
+cli.add_command(compute_clans)
 cli.add_command(compute_scores)
 cli.add_command(info)
 cli.add_command(info_fail)
