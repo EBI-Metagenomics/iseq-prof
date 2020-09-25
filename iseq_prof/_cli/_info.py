@@ -80,9 +80,20 @@ def show_space_stat(prof_acc: ProfAcc):
     click.echo(tabulate(table, headers=[title]))
 
 
-def show_confusion_table(prof_acc: ProfAcc, e_value: float):
-    cm = prof_acc.confusion_matrix(SolutSpaceType(SampleType.PROF_TARGET, False))
-    i = cm.cutpoint(e_value)
+def show_confusion_table(prof_acc: ProfAcc, evalue: float):
+    space_type = SolutSpaceType(SampleType.PROF_TARGET, False)
+    left = _confusion_table(prof_acc, space_type, evalue)
+
+    space_type = SolutSpaceType(SampleType.PROF_TARGET, True)
+    right = _confusion_table(prof_acc, space_type, evalue)
+
+    table = [[left[0], right[0]], [left[1], right[1]], ["multihit", "ignore-multihit"]]
+    click.echo(tabulate(table, tablefmt="plain"))
+
+
+def _confusion_table(prof_acc: ProfAcc, space_type: SolutSpaceType, evalue: float):
+    cm = prof_acc.confusion_matrix(space_type)
+    i = cm.cutpoint(evalue)
     TP = str(cm.TP[i])
     FP = str(cm.FP[i])
     FN = str(cm.FN[i])
@@ -98,8 +109,8 @@ def show_confusion_table(prof_acc: ProfAcc, e_value: float):
     ]
 
     table = [[tabulate(table, tablefmt="plain")]]
-    title = f"confusion table (e-value<={e_value})"
-    click.echo(tabulate(table, headers=[title]))
+    title = f"confusion table (e-value<={evalue})"
+    rows = [tabulate(table, headers=[title])]
 
     table = [
         [
@@ -112,8 +123,10 @@ def show_confusion_table(prof_acc: ProfAcc, e_value: float):
     headers = ["sensitivity", "specifity", "accuracy", "f1-score"]
     table = [[tabulate(table, headers=headers)]]
     click.echo()
-    title = f"scoring (e-value<={e_value})"
-    click.echo(tabulate([[tabulate(table)]], headers=[title], tablefmt="plain"))
+    title = f"scoring (e-value<={evalue})"
+    rows += [tabulate([[tabulate(table)]], headers=[title], tablefmt="plain")]
+
+    return rows
 
 
 def space_stat(prof_acc: ProfAcc, space_type: SolutSpaceType):
