@@ -31,28 +31,28 @@ class Accession:
         if self._taxonomy is None:
             self._fetch_genbank_info()
         assert self._taxonomy is not None
-        return self._taxonomy[0]
+        return self._taxonomy[0] if len(self._taxonomy) >= 1 else "UNKNOWN"
 
     @property
     def phylum(self) -> str:
         if self._taxonomy is None:
             self._fetch_genbank_info()
         assert self._taxonomy is not None
-        return self._taxonomy[1]
+        return self._taxonomy[1] if len(self._taxonomy) >= 2 else "UNKNOWN"
 
     @property
     def class_(self) -> str:
         if self._taxonomy is None:
             self._fetch_genbank_info()
         assert self._taxonomy is not None
-        return self._taxonomy[2]
+        return self._taxonomy[2] if len(self._taxonomy) >= 3 else "UNKNOWN"
 
     @property
     def order(self) -> str:
         if self._taxonomy is None:
             self._fetch_genbank_info()
         assert self._taxonomy is not None
-        return self._taxonomy[3]
+        return self._taxonomy[3] if len(self._taxonomy) >= 4 else "UNKNOWN"
 
     @property
     def organism(self) -> str:

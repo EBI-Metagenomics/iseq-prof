@@ -23,7 +23,7 @@ from ._confusion import ConfusionMatrix
 from ._file import assert_file_exist
 from ._tables import domtbl_as_dataframe
 
-__all__ = ["ProfAcc", "Sample", "SolutSpace", "ProfAccFiles"]
+__all__ = ["ProfAcc", "Sample", "SolutSpaceType", "ProfAccFiles"]
 
 
 @dataclass(frozen=True)
@@ -69,7 +69,7 @@ class Sample:
         return hash(self) == hash(you)
 
 
-class SolutSpace(Enum):
+class SolutSpaceType(Enum):
     PROF_TARGET = 1
     PROF = 2
     TARGET = 3
@@ -125,24 +125,24 @@ class ProfAcc:
         return self._accession
 
     def sample_space(
-        self, solut_space=SolutSpace.PROF_TARGET, solut_space_idx=True
+        self, solut_space=SolutSpaceType.PROF_TARGET, solut_space_idx=True
     ) -> Set[Sample]:
         return self._get_samples(solut_space, solut_space_idx)[0]
 
     def true_sample_space(
-        self, solut_space=SolutSpace.PROF_TARGET, solut_space_idx=True
+        self, solut_space=SolutSpaceType.PROF_TARGET, solut_space_idx=True
     ) -> Set[Sample]:
         return self._get_samples(solut_space, solut_space_idx)[1]
 
     def _get_samples(
-        self, solut_space=SolutSpace.PROF_TARGET, solut_space_idx=True
+        self, solut_space=SolutSpaceType.PROF_TARGET, solut_space_idx=True
     ) -> Tuple[Set[Sample], Set[Sample], List[Sample]]:
-        if solut_space == SolutSpace.PROF_TARGET:
+        if solut_space == SolutSpaceType.PROF_TARGET:
             sample_space, true_samples, ordered_sample_hits = self._prof_target_space()
-        elif solut_space == SolutSpace.PROF:
+        elif solut_space == SolutSpaceType.PROF:
             sample_space, true_samples, ordered_sample_hits = self._prof_space()
         else:
-            assert solut_space == SolutSpace.TARGET
+            assert solut_space == SolutSpaceType.TARGET
             sample_space, true_samples, ordered_sample_hits = self._target_space()
 
         if not solut_space_idx:
@@ -153,7 +153,7 @@ class ProfAcc:
         return sample_space, true_samples, ordered_sample_hits
 
     def confusion_matrix(
-        self, solut_space=SolutSpace.PROF_TARGET, solut_space_idx=True
+        self, solut_space=SolutSpaceType.PROF_TARGET, solut_space_idx=True
     ) -> ConfusionMatrix:
         from numpy import full, inf, zeros
 
@@ -178,7 +178,10 @@ class ProfAcc:
         return ConfusionMatrix(true_sample_ids, N, sorted_samples, sample_scores)
 
     def score(
-        self, e_value: float, solut_space=SolutSpace.PROF_TARGET, solut_space_idx=True
+        self,
+        e_value: float,
+        solut_space=SolutSpaceType.PROF_TARGET,
+        solut_space_idx=True,
     ) -> Score:
         cm = self.confusion_matrix(solut_space, solut_space_idx)
         i = cm.cutpoint(e_value)
@@ -229,7 +232,7 @@ class ProfAcc:
         # TODO: length should instead be the target length
         # not the matched length
         df["length"] = df["end"] - df["start"] + 1
-        types = [SolutSpace.PROF_TARGET, SolutSpace.PROF, SolutSpace.TARGET]
+        types = [SolutSpaceType.PROF_TARGET, SolutSpaceType.PROF, SolutSpaceType.TARGET]
         true_samples = {t: self._get_true_samples(t) for t in types}
 
         df = set_hitnum(df, "prof_target_hitnum", ["seqid", "profile"], "e_value")
@@ -245,7 +248,7 @@ class ProfAcc:
             tp = []
             idx = row.prof_target_hitnum
             sample = Sample(row.profile_acc, row.seqid.split("|")[0], idx)
-            if sample in true_samples[SolutSpace.PROF_TARGET]:
+            if sample in true_samples[SolutSpaceType.PROF_TARGET]:
                 tp.append("prof-target")
                 prof_target_tp.append(True)
             else:
@@ -253,7 +256,7 @@ class ProfAcc:
 
             idx = row.prof_hitnum
             sample = Sample(row.profile_acc, "", idx)
-            if sample in true_samples[SolutSpace.PROF]:
+            if sample in true_samples[SolutSpaceType.PROF]:
                 tp.append("prof")
                 prof_tp.append(True)
             else:
@@ -261,7 +264,7 @@ class ProfAcc:
 
             idx = row.target_hitnum
             sample = Sample("", row.seqid.split("|")[0], idx)
-            if sample in true_samples[SolutSpace.TARGET]:
+            if sample in true_samples[SolutSpaceType.TARGET]:
                 tp.append("target")
                 target_tp.append(True)
             else:
@@ -299,18 +302,18 @@ class ProfAcc:
         desc = seq_record.description
         return GenBank(kingdom, desc)
 
-    def _get_true_samples(self, solut_space: SolutSpace):
-        if solut_space == SolutSpace.PROF_TARGET:
+    def _get_true_samples(self, solut_space: SolutSpaceType):
+        if solut_space == SolutSpaceType.PROF_TARGET:
             return self._true_samples
 
-        elif solut_space == SolutSpace.PROF:
+        elif solut_space == SolutSpaceType.PROF:
             true_samples = set()
             for k, n in prof_count(self._true_samples).items():
                 for i in range(n):
                     true_samples.add(Sample(k, "", i))
             return true_samples
 
-        assert solut_space == SolutSpace.TARGET
+        assert solut_space == SolutSpaceType.TARGET
         true_samples = set()
         for k, n in target_count(self._true_samples).items():
             for i in range(n):
@@ -326,7 +329,7 @@ class ProfAcc:
             for i in range(n):
                 sample_space.add(Sample(k, "", i))
 
-        true_samples = self._get_true_samples(SolutSpace.PROF)
+        true_samples = self._get_true_samples(SolutSpaceType.PROF)
 
         ordered_sample_hits = []
         count: Dict[str, int] = {}
@@ -343,7 +346,7 @@ class ProfAcc:
             for i in range(n):
                 sample_space.add(Sample("", k, i))
 
-        true_samples = self._get_true_samples(SolutSpace.TARGET)
+        true_samples = self._get_true_samples(SolutSpaceType.TARGET)
 
         ordered_sample_hits = []
         count: Dict[str, int] = {}

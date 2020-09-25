@@ -8,7 +8,7 @@ from ._confusion import ConfusionMatrix
 from ._env import ISEQ_PROF_CACHE_HOME
 from ._example import example_filepath
 from ._genbank import GenBank, genbank_catalog
-from ._prof_acc import ProfAcc, SolutSpace
+from ._prof_acc import ProfAcc, SolutSpaceType
 from ._profiling import Profiling
 from ._testit import test
 
@@ -24,7 +24,7 @@ __all__ = [
     "ISEQ_PROF_CACHE_HOME",
     "ProfAcc",
     "Profiling",
-    "SolutSpace",
+    "SolutSpaceType",
     "__version__",
     "cli",
     "example_filepath",

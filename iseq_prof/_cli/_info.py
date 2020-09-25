@@ -3,7 +3,7 @@ from pathlib import Path
 import click
 from tabulate import tabulate
 
-from .._prof_acc import ProfAcc, SolutSpace
+from .._prof_acc import ProfAcc, SolutSpaceType
 
 __all__ = ["info"]
 
@@ -56,7 +56,11 @@ def info(experiment: str, accession: str, n: int, e_value: float):
 
 
 def show_space_stat(prof_acc: ProfAcc):
-    space_types = [SolutSpace.PROF_TARGET, SolutSpace.PROF, SolutSpace.TARGET]
+    space_types = [
+        SolutSpaceType.PROF_TARGET,
+        SolutSpaceType.PROF,
+        SolutSpaceType.TARGET,
+    ]
 
     table = []
     for space_type in space_types:
@@ -111,7 +115,7 @@ def show_confusion_table(prof_acc: ProfAcc, e_value: float):
     click.echo(tabulate([[tabulate(table)]], headers=[title], tablefmt="plain"))
 
 
-def space_stat(prof_acc: ProfAcc, space_type: SolutSpace, repeat: bool):
+def space_stat(prof_acc: ProfAcc, space_type: SolutSpaceType, repeat: bool):
     sample_space = prof_acc.sample_space(space_type, repeat)
     true_sample_space = prof_acc.true_sample_space(space_type, repeat)
     n = len(sample_space)

@@ -2,16 +2,16 @@ import click
 import pandas as pd
 from tabulate import tabulate
 
-from .._prof_acc import SolutSpace
+from .._prof_acc import SolutSpaceType
 
 __all__ = ["get_solut_space", "show_true_table_profile", "show_hit_table_profile"]
 
 
-def get_solut_space(solut_space: str) -> SolutSpace:
+def get_solut_space(solut_space: str) -> SolutSpaceType:
     space_types = {
-        "prof-target": SolutSpace.PROF_TARGET,
-        "prof": SolutSpace.PROF,
-        "target": SolutSpace.TARGET,
+        "prof-target": SolutSpaceType.PROF_TARGET,
+        "prof": SolutSpaceType.PROF,
+        "target": SolutSpaceType.TARGET,
     }
     return space_types[solut_space]
 
