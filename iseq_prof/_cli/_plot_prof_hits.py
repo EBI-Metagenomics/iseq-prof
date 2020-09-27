@@ -1,6 +1,7 @@
 from collections import defaultdict
+from copy import copy
 from pathlib import Path
-from typing import Dict, Set
+from typing import Dict, Optional, Set
 
 import click
 import hmmer
@@ -47,12 +48,21 @@ __all__ = ["plot_prof_hits"]
     type=int,
     default=0,
 )
+@click.option(
+    "--clan-filepath",
+    help="Clan filepath. Enable clan aggregation.",
+    type=click.Path(
+        exists=False, dir_okay=False, file_okay=True, writable=True, resolve_path=True
+    ),
+    default=None,
+)
 def plot_prof_hits(
     experiment: str,
     output: str,
     gff_filename: str,
     percentile: int,
     min_hmmer_hits: int,
+    clan_filepath: Optional[str],
 ):
     """
     Show profile hits.
@@ -63,6 +73,8 @@ def plot_prof_hits(
     iseq_count: Dict[str, int] = defaultdict(lambda: 0)
     hmmer_count: Dict[str, int] = defaultdict(lambda: 0)
 
+    collapse = get_collapse(clan_filepath)
+
     for acc in tqdm(prof.accessions):
         fp = root / acc / gff_filename
         if not fp.exists():
@@ -71,6 +83,9 @@ def plot_prof_hits(
 
         hprofs = hmmer_profiles(root / acc / "domtblout.txt")
         iprofs = iseq_profiles(root / acc / gff_filename)
+
+        hprofs = set(collapse(s) for s in hprofs)
+        iprofs = set(collapse(s) for s in iprofs)
 
         matches = hprofs & iprofs
 
@@ -122,7 +137,8 @@ def hmmer_profiles(domtbl_fp: Path) -> Set[Sample]:
     samples = []
     for row in hmmer.read_domtbl(domtbl_fp):
         target = row.query.name.partition("|")[0]
-        samples.append(Sample(row.target.name, target))
+        acc = row.target.accession
+        samples.append(Sample(acc, target))
     return set(samples)
 
 
@@ -133,7 +149,7 @@ def iseq_profiles(output_fp: Path) -> Set[Sample]:
     samples = []
     for row in df.itertuples(False):
         target = row.seqid.partition("|")[0]
-        samples.append(Sample(row.att_Profile_name, target))
+        samples.append(Sample(row.att_Profile_acc, target))
     return set(samples)
 
 
@@ -148,3 +164,25 @@ def count_interesting_profiles(df: pd.DataFrame, min_hmmer_hits: int):
     df = df[df["method"] == "hmmer"]
     df = df[df["count"] >= min_hmmer_hits]
     return df["profile"].unique()
+
+
+def get_collapse(clan_filepath: Optional[str]):
+    if clan_filepath is None:
+
+        def collapse(sample: Sample):
+            return sample
+
+    else:
+        clan_filepath = Path(clan_filepath)
+        df = pd.read_csv(clan_filepath)
+        prof_to_clan = {}
+        for row in df.itertuples(False):
+            prof_to_clan[row.prof_acc] = row.clan_id
+
+        def collapse(sample: Sample):
+            p = sample.profile.partition(".")[0]
+            sample = copy(sample)
+            sample.profile = prof_to_clan.get(p, p)
+            return sample
+
+    return collapse
