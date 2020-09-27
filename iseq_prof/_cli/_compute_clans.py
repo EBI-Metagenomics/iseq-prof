@@ -39,6 +39,7 @@ def compute_clans(input_filepath: str, output_filepath: str):
 
             if state == "BODY" and row.startswith("//"):
                 state = "END"
+                fields["MB"] = list(set(fields["MB"]))
                 df = fields_to_df(fields)
                 dfs.append(df)
                 fields = defaultdict(list)
