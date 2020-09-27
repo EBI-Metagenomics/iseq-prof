@@ -59,6 +59,7 @@ def compute_clans(input_filepath: str, output_filepath: str):
     df = pd.concat(dfs)
     columns = {"ID": "clan_id", "AC": "clan_acc", "MB": "prof_acc"}
     df.rename(columns=columns, inplace=True)
+    df.sort_values(["clan_id", "clan_acc", "prof_acc"], inplace=True, kind="mergesort")
     df.to_csv(output_filepath, index=False, header=True)
 
 
