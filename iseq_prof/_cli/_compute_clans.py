@@ -1,4 +1,7 @@
+import gzip
+import io
 from collections import defaultdict
+from typing import Dict, List
 
 import chardet
 import click
@@ -26,35 +29,39 @@ def compute_clans(input_filepath: str, output_filepath: str):
     filter_fields = set(["ID", "AC", "MB"])
     dfs = []
     state = "UNK"
-    fields = defaultdict(list)
+    fields: Dict[str, List[str]] = defaultdict(list)
+
+    click.echo("Reading input file... ", nl=False)
+    with gzip.open(input_filepath, "rb") as f:
+        file_content = f.read()
+    click.echo("done.")
 
     click.echo("Detecting encoding... ", nl=False)
-    encoding = chardet.detect(open("Pfam-C", "rb").read())["encoding"]
+    encoding = chardet.detect(file_content)["encoding"]
     click.echo("done.")
-    with open(input_filepath, "r", encoding=encoding) as file:
-        for row in tqdm(file):
-            if row.startswith("# STOCKHOLM"):
-                state = "BEGIN"
-                continue
+    for row in tqdm(io.StringIO(file_content.decode(encoding))):
+        if row.startswith("# STOCKHOLM"):
+            state = "BEGIN"
+            continue
 
-            if state == "BODY" and row.startswith("//"):
-                state = "END"
-                fields["MB"] = list(set(fields["MB"]))
-                df = fields_to_df(fields)
-                dfs.append(df)
-                fields = defaultdict(list)
-                continue
+        if state == "BODY" and row.startswith("//"):
+            state = "END"
+            fields["MB"] = list(set(fields["MB"]))
+            df = fields_to_df(fields)
+            dfs.append(df)
+            fields = defaultdict(list)
+            continue
 
-            if state == "BEGIN" and not row.startswith("//"):
-                state = "BODY"
+        if state == "BEGIN" and not row.startswith("//"):
+            state = "BODY"
 
-            if state == "BODY":
-                assert "#=GF " == row[:5]
-                key = row[5:7]
-                if key in filter_fields:
-                    val = row[10:].strip().rstrip(";")
-                    fields[key].append(val)
-                continue
+        if state == "BODY":
+            assert "#=GF " == row[:5]
+            key = row[5:7]
+            if key in filter_fields:
+                val = row[10:].strip().rstrip(";")
+                fields[key].append(val)
+            continue
 
     df = pd.concat(dfs)
     columns = {"ID": "clan_id", "AC": "clan_acc", "MB": "prof_acc"}
