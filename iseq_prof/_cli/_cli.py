@@ -2,6 +2,7 @@ import click
 
 from ._compute_clans import compute_clans
 from ._compute_scores import compute_scores
+from ._hmm_filter import hmm_filter
 from ._info import info
 from ._info_fail import info_fail
 from ._info_prof import info_prof
@@ -30,6 +31,7 @@ def cli():
 
 cli.add_command(compute_clans)
 cli.add_command(compute_scores)
+cli.add_command(hmm_filter)
 cli.add_command(info)
 cli.add_command(info_fail)
 cli.add_command(info_prof)

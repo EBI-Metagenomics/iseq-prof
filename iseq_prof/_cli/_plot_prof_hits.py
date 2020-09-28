@@ -11,6 +11,7 @@ import pandas as pd
 import plotly.express as px
 from tqdm import tqdm
 
+from .._clan import Clans
 from .._profiling import Profiling
 from ..solut_space import Sample
 
@@ -89,11 +90,11 @@ def plot_prof_hits(
 
         matches = hprofs & iprofs
 
-        for prof in hprofs:
-            hmmer_count[prof.profile] += 1
+        for p in hprofs:
+            hmmer_count[p.profile] += 1
 
-        for prof in matches:
-            iseq_count[prof.profile] += 1
+        for p in matches:
+            iseq_count[p.profile] += 1
 
     data = [(key, val, "iseq-match") for key, val in iseq_count.items()]
     data += [(key, val, "hmmer") for key, val in hmmer_count.items()]
@@ -173,16 +174,11 @@ def get_collapse(clan_filepath: Optional[str]):
             return sample
 
     else:
-        clan_filepath = Path(clan_filepath)
-        df = pd.read_csv(clan_filepath)
-        prof_to_clan = {}
-        for row in df.itertuples(False):
-            prof_to_clan[row.prof_acc] = row.clan_id
+        clans = Clans(Path(clan_filepath))
 
         def collapse(sample: Sample):
-            p = sample.profile.partition(".")[0]
             sample = copy(sample)
-            sample.profile = prof_to_clan.get(p, p)
+            sample.profile = clans.get_clan(sample.profile)
             return sample
 
     return collapse
