@@ -1,6 +1,5 @@
 from importlib import import_module as _import_module
 
-from . import _typing as typing
 from . import fasta, plot, solut_space
 from ._accession import Accession
 from ._clan import Clans
@@ -35,5 +34,4 @@ __all__ = [
     "plot",
     "solut_space",
     "test",
-    "typing",
 ]
