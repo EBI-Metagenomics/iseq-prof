@@ -13,13 +13,11 @@ def eevalues(prof_acc: ProfAcc, evalue=1e-10):
 
     true_table = prof_acc.true_table()
     hit_table = prof_acc.hit_table(evalue=evalue)
+    hit_table.rename(columns={"e_value": "e-value"}, inplace=True)
 
     true_table["seqid"] = true_table["query.name"].str.replace(r"\|.*", "")
     true_table = true_table.rename(
         columns={
-            "target.name": "profile",
-            "target.length": "hmm.length",
-            "query.length": "seqid.length",
             "description": "desc",
             "full_sequence.e_value": "full_seq.e_value",
             "ali_coord.start": "seqid_coord.start",
@@ -37,7 +35,7 @@ def eevalues(prof_acc: ProfAcc, evalue=1e-10):
     hit_table = hit_table.rename(
         columns={
             "att_Profile_name": "profile",
-            "att_ID": "hitid",
+            "id": "hitid",
             "start": "seqid_coord.start",
             "end": "seqid_coord.stop",
         }
@@ -53,10 +51,8 @@ def eevalues(prof_acc: ProfAcc, evalue=1e-10):
             "domain.c_value",
             "hmm_coord.start",
             "hmm_coord.stop",
-            "hmm.length",
             "seqid_coord.start",
             "seqid_coord.stop",
-            "seqid.length",
             "acc",
             "desc",
         ]
@@ -67,7 +63,6 @@ def eevalues(prof_acc: ProfAcc, evalue=1e-10):
             "hitid",
             "seqid_coord.start",
             "seqid_coord.stop",
-            "true-positive",
         ]
     ]
 
@@ -82,14 +77,50 @@ def eevalues(prof_acc: ProfAcc, evalue=1e-10):
     df["-log10(e-value) (hmmer)"] = -log10(df["e-value (hmmer)"])
     df["-log10(e-value) (iseq)"] = -log10(df["e-value (iseq)"])
 
+    xlabel = "-log10(e-value) (hmmer)"
+    ylabel = "-log10(e-value) (iseq)"
+
+    # xdiff = df[xlabel].max() - df[xlabel].min()
+    # ydiff = df[ylabel].max() - df[ylabel].min()
+    rmin = min(df[xlabel].min(), df[ylabel].min())
+    rmax = max(df[xlabel].max(), df[ylabel].max())
+
     fig = px.scatter(
         df,
-        x="-log10(e-value) (hmmer)",
-        y="-log10(e-value) (iseq)",
+        x=xlabel,
+        y=ylabel,
         hover_name="hitid",
         color="profile",
         hover_data=df.columns,
     )
+
+    fig.add_shape(
+        type="line",
+        x0=rmin,
+        y0=rmin,
+        x1=rmax,
+        y1=rmax,
+        line=dict(
+            color="Crimson",
+            width=1,
+        ),
+    )
+    # fig.update_xaxes(range=[rmin, rmax])
+    # fig.update_yaxes(range=[rmin, rmax])
+
+    fig.update_xaxes(constrain="domain")
+    fig.update_yaxes(constrain="domain")
+
+    # if xdiff > ydiff:
+    #     fig.update_yaxes(
+    #         scaleanchor="x",
+    #         scaleratio=1,
+    #     )
+    # else:
+    #     fig.update_xaxes(
+    #         scaleanchor="y",
+    #         scaleratio=1,
+    #     )
 
     gb = prof_acc.genbank_metadata()
     acc = prof_acc.accession

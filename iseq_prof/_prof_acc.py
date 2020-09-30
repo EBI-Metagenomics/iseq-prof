@@ -15,7 +15,7 @@ from ._accession import Accession
 from ._confusion import ConfusionMatrix
 from ._file import assert_file_exist
 from ._tables import domtbl_as_dataframe
-from .solut_space import Sample, SampleType, SolutSpace, SolutSpaceType
+from .solut_space import SampleType, SolutSpace, SolutSpaceType
 
 __all__ = ["ProfAcc", "ProfAccFiles"]
 
@@ -161,58 +161,14 @@ class ProfAcc:
                 "att_Target_alph": "target_alph",
             }
         )
-        # df = df[df["e_value"] <= evalue]
         df["profile"] = df["profile_name"]
         # TODO: length should instead be the target length
         # not the matched length
         df["length"] = df["end"] - df["start"] + 1
-        types = [SampleType.PROF_TARGET, SampleType.PROF, SampleType.TARGET]
-        true_samples = {t: self._solut_space._get_true_samples(t) for t in types}
 
         df = set_hitnum(df, "prof_target_hitnum", ["seqid", "profile"], "e_value")
         df = set_hitnum(df, "prof_hitnum", ["profile"], "e_value")
         df = set_hitnum(df, "target_hitnum", ["seqid"], "e_value")
-
-        true_positive = []
-        prof_target_tp = []
-        prof_tp = []
-        target_tp = []
-        for row in df.itertuples():
-
-            tp = []
-            idx = row.prof_target_hitnum
-            sample = Sample(row.profile_acc, row.seqid.split("|")[0], idx)
-            if sample in true_samples[SampleType.PROF_TARGET]:
-                tp.append("prof-target")
-                prof_target_tp.append(True)
-            else:
-                prof_target_tp.append(False)
-
-            idx = row.prof_hitnum
-            sample = Sample(row.profile_acc, "", idx)
-            if sample in true_samples[SampleType.PROF]:
-                tp.append("prof")
-                prof_tp.append(True)
-            else:
-                prof_tp.append(False)
-
-            idx = row.target_hitnum
-            sample = Sample("", row.seqid.split("|")[0], idx)
-            if sample in true_samples[SampleType.TARGET]:
-                tp.append("target")
-                target_tp.append(True)
-            else:
-                target_tp.append(False)
-
-            if len(tp) > 0:
-                true_positive.append(",".join(tp))
-            else:
-                true_positive.append("")
-
-        df["true_positive"] = true_positive
-        df["prof_target_tp"] = prof_target_tp
-        df["prof_tp"] = prof_tp
-        df["target_tp"] = target_tp
 
         abs_starts = []
         abs_ends = []
