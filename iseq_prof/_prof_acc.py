@@ -125,18 +125,17 @@ class ProfAcc:
         pr_auc = cm.pr_curve.auc
         return Score(sensitivity, specifity, roc_auc, pr_auc)
 
-    def true_table(self) -> DataFrame:
+    def true_table(self, evalue_col="domain.i_value") -> DataFrame:
         df = domtbl_as_dataframe(read_domtbl(self._domtblout_file))
         df["full_sequence.e_value"] = df["full_sequence.e_value"].astype(float)
         df["domain.i_value"] = df["domain.i_value"].astype(float)
         df["domain.c_value"] = df["domain.c_value"].astype(float)
         df["profile"] = df["target.name"]
         df["seqid"] = df["query.name"]
-        df = set_hitnum(
-            df, "prof_target_hitnum", ["seqid", "profile"], "domain.i_value"
-        )
-        df = set_hitnum(df, "prof_hitnum", ["profile"], "domain.i_value")
-        df = set_hitnum(df, "target_hitnum", ["seqid"], "domain.i_value")
+        df = set_hitnum(df, "prof_target_hitnum", ["profile", "seqid"], evalue_col)
+        df = set_hitnum(df, "prof_hitnum", ["profile"], evalue_col)
+        df = set_hitnum(df, "target_hitnum", ["seqid"], evalue_col)
+        df.reset_index(drop=True, inplace=True)
         return df
 
     def hit_table(self, evalue=1e-10) -> DataFrame:
@@ -166,7 +165,7 @@ class ProfAcc:
         # not the matched length
         df["length"] = df["end"] - df["start"] + 1
 
-        df = set_hitnum(df, "prof_target_hitnum", ["seqid", "profile"], "e_value")
+        df = set_hitnum(df, "prof_target_hitnum", ["profile", "seqid"], "e_value")
         df = set_hitnum(df, "prof_hitnum", ["profile"], "e_value")
         df = set_hitnum(df, "target_hitnum", ["seqid"], "e_value")
 
@@ -182,7 +181,8 @@ class ProfAcc:
 
         df["abs_start"] = abs_starts
         df["abs_end"] = abs_ends
-        df = df.sort_values(by=["abs_start", "abs_end"]).reset_index(drop=True)
+        df = df.sort_values(by=["abs_start", "abs_end"])
+        df.reset_index(drop=True, inplace=True)
 
         return df
 
@@ -196,8 +196,8 @@ class ProfAcc:
 def set_hitnum(df: DataFrame, hitnum_col: str, sort_by: List, e_value_col: str):
     df[hitnum_col] = 0
     isinstance(df[e_value_col].dtype, type(dtype("float64")))
-    df = df.sort_values(sort_by + [e_value_col])
-    df = df.reset_index(drop=True)
+    df.sort_values(sort_by + [e_value_col], inplace=True)
+    df.reset_index(drop=True, inplace=True)
     hitnum = 0
     last = ("",) * len(sort_by)
     for row in df.itertuples():
