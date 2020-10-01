@@ -7,6 +7,7 @@ from typing import Any, List, Optional, Type
 
 from Bio import SeqIO
 from hmmer import read_domtbl
+from iseq.gff import GFF
 from iseq.gff import read as read_gff
 from numpy import dtype, full, inf, zeros
 from pandas import DataFrame
@@ -71,10 +72,8 @@ class ProfAcc:
         assert_file_exist(output_file)
         assert_file_exist(genbank)
 
-        self._gff = read_gff(output_file)
-        self._solut_space = SolutSpace(
-            self._gff, hmmer_file, cds_nucl_file, domtblout_file
-        )
+        self._gff: Optional[GFF] = read_gff(output_file)
+        self._solut_space: Optional[SolutSpace] = None
         if low_memory:
             del self._gff
             self._gff = None
@@ -83,6 +82,19 @@ class ProfAcc:
         self._output_file = output_file
         self._genbank = genbank
         self._accession: Accession = Accession.from_file(genbank)
+
+        self._hmmer_file = hmmer_file
+        self._cds_nucl_file = cds_nucl_file
+        self._domtblout_file = domtblout_file
+
+    def _fetch_solut_space(self) -> SolutSpace:
+        if self._solut_space is None:
+            if self._gff is None:
+                self._gff = read_gff(self._output_file)
+            self._solut_space = SolutSpace(
+                self._gff, self._hmmer_file, self._cds_nucl_file, self._domtblout_file
+            )
+        return self._solut_space
 
     @property
     def accession(self) -> Accession:
@@ -93,7 +105,7 @@ class ProfAcc:
             sample_space,
             true_samples,
             ordered_sample_hits,
-        ) = self._solut_space._get_samples(space_type)
+        ) = self._fetch_solut_space()._get_samples(space_type)
 
         sample_space_id = {s: i for i, s in enumerate(sample_space)}
         true_sample_ids = [sample_space_id[k] for k in true_samples]

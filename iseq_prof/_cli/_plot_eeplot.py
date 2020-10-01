@@ -28,8 +28,13 @@ def plot_eeplot(experiment: str, accession: str, output: str):
     """
     root = Path(experiment)
     prof = Profiling(root)
-    prof_acc = prof.read_accession(accession)
-    fig = plot.eeplot(prof_acc)
+    accessions = prof.accessions
+
+    prof_accs = []
+    for acc in accessions[:2]:
+        prof_accs.append(prof.read_accession(accession))
+
+    fig = plot.eeplot(prof_accs)
     outpath = Path(output)
     if outpath.suffix == ".html":
         fig.write_html(str(outpath))
