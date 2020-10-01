@@ -5,7 +5,7 @@ import click
 from .. import plot
 from .._profiling import Profiling
 
-__all__ = ["plot_eevalues"]
+__all__ = ["plot_eeplot"]
 
 
 @click.command()
@@ -22,14 +22,14 @@ __all__ = ["plot_eevalues"]
         exists=False, dir_okay=False, file_okay=True, writable=True, resolve_path=True
     ),
 )
-def plot_eevalues(experiment: str, accession: str, output: str):
+def plot_eeplot(experiment: str, accession: str, output: str):
     """
     Plot e-values.
     """
     root = Path(experiment)
     prof = Profiling(root)
     prof_acc = prof.read_accession(accession)
-    fig = plot.eevalues(prof_acc)
+    fig = plot.eeplot(prof_acc)
     outpath = Path(output)
     if outpath.suffix == ".html":
         fig.write_html(str(outpath))

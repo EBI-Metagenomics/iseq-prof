@@ -4,15 +4,15 @@ from pandas import concat
 
 from .._prof_acc import ProfAcc
 
-__all__ = ["eevalues"]
+__all__ = ["acc_eeplot"]
 
 
-def eevalues(prof_acc: ProfAcc, evalue=1.0):
+def acc_eeplot(prof_acc: ProfAcc, evalue=1e-10):
     """
     E-value vs e-value plot.
     """
 
-    hit_table = get_hit_table(prof_acc, evalue)
+    hit_table = get_hit_table(prof_acc, 1.0)
 
     dfs = []
     for hmmer_evalue in ["domain.i_value", "domain.c_value"]:
@@ -30,7 +30,7 @@ def eevalues(prof_acc: ProfAcc, evalue=1.0):
         df0.fillna("N/A", inplace=True)
         dfs.append(df0)
 
-    df = concat(dfs)
+    df = concat(dfs).reset_index(drop=True)
 
     xlabel = "-log10(e-value) (hmmer)"
     ylabel = "-log10(e-value) (iseq)"
@@ -40,6 +40,8 @@ def eevalues(prof_acc: ProfAcc, evalue=1.0):
     rmin = min(df[xlabel].min(), df[ylabel].min())
     rmax = max(df[xlabel].max(), df[ylabel].max())
 
+    df["symbol"] = "circle"
+    df.loc[df["e-value (iseq)"] > evalue, "symbol"] = "x"
     fig = px.scatter(
         df,
         x=xlabel,
@@ -48,6 +50,8 @@ def eevalues(prof_acc: ProfAcc, evalue=1.0):
         color="profile",
         hover_data=df.columns,
         facet_col="hmmer-evalue",
+        symbol="symbol",
+        symbol_map="identity",
     )
 
     for col in [1, 2]:
@@ -64,22 +68,22 @@ def eevalues(prof_acc: ProfAcc, evalue=1.0):
             row=1,
             col=col,
         )
-    # fig.update_xaxes(range=[rmin, rmax])
-    # fig.update_yaxes(range=[rmin, rmax])
+        fig.add_shape(
+            type="line",
+            x0=rmin,
+            y0=-log10(evalue),
+            x1=rmax,
+            y1=-log10(evalue),
+            line=dict(
+                color="Crimson",
+                width=1,
+            ),
+            row=1,
+            col=col,
+        )
 
     fig.update_xaxes(constrain="domain")
     fig.update_yaxes(constrain="domain")
-
-    # if xdiff > ydiff:
-    #     fig.update_yaxes(
-    #         scaleanchor="x",
-    #         scaleratio=1,
-    #     )
-    # else:
-    #     fig.update_xaxes(
-    #         scaleanchor="y",
-    #         scaleratio=1,
-    #     )
 
     gb = prof_acc.genbank_metadata()
     acc = prof_acc.accession
