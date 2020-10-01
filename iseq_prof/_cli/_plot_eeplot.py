@@ -36,7 +36,7 @@ def plot_eeplot(experiment: str, output: str, multihit: bool):
     accessions = prof.accessions
 
     prof_accs = []
-    for acc in tqdm(accessions[:5]):
+    for acc in tqdm(accessions):
         prof_accs.append(prof.read_accession(acc))
 
     fig = plot.eeplot(prof_accs, 1e-10, multihit)
