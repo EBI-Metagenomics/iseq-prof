@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 from dataclasses import dataclass
+from math import nan
 from pathlib import Path
 from typing import Any, List, Optional, Type
 
@@ -155,7 +156,10 @@ class ProfAcc:
             self._gff = read_gff(self._output_file)
         self._gff.ravel()
         df = self._gff.dataframe
-        df["att_E-value"] = df["att_E-value"].astype(float)
+        if "att_E-value" in df.columns:
+            df["att_E-value"] = df["att_E-value"].astype(float)
+        else:
+            df["att_E-value"] = nan
         df = df[df["att_E-value"] <= evalue]
         del df["score"]
         df = df.rename(
@@ -172,7 +176,11 @@ class ProfAcc:
                 "att_Target_alph": "target_alph",
             }
         )
-        df["profile"] = df["profile_name"]
+        if "profile_name" in df.columns:
+            df["profile"] = df["profile_name"]
+        else:
+            df["profile"] = []
+            df["profile"] = df["profile"].astype(str)
         # TODO: length should instead be the target length
         # not the matched length
         df["length"] = df["end"] - df["start"] + 1

@@ -1,16 +1,54 @@
+from typing import List
+
 import plotly.express as px
 from numpy import log10
-from pandas import concat
+from pandas import DataFrame, concat
 
 from .._prof_acc import ProfAcc
 
-__all__ = ["acc_eeplot"]
+__all__ = ["acc_eeplot", "eeplot"]
 
 
-def acc_eeplot(prof_acc: ProfAcc, evalue=1e-10):
+def eeplot(prof_accs: List[ProfAcc], evalue=1e-10, multihit=False):
     """
     E-value vs e-value plot.
     """
+    dfs = []
+    for prof_acc in prof_accs:
+        df0 = compute_table(prof_acc)
+        dfs.append(df0)
+
+    df = concat(dfs).reset_index(drop=True)
+    if not multihit:
+        df = df[df["prof_target_hitnum"] == 0].reset_index(drop=True)
+        ps = "multihit=discard"
+    else:
+        ps = "multihit=keep"
+
+    n = len(df["accession"].unique())
+    title = f"{n} accessions ({ps})"
+    return _plot(df, evalue, "accession", title)
+
+
+def acc_eeplot(prof_acc: ProfAcc, evalue, multihit):
+    """
+    E-value vs e-value plot.
+    """
+
+    df = compute_table(prof_acc)
+    if not multihit:
+        df = df[df["prof_target_hitnum"] == 0].reset_index(drop=True)
+        ps = "multihit=discard"
+    else:
+        ps = "multihit=keep"
+
+    gb = prof_acc.genbank_metadata()
+    acc = prof_acc.accession
+    title = f"{acc}: {gb.description} ({gb.kingdom}) ({ps})"
+    return _plot(df, evalue, "profile", title)
+
+
+def compute_table(prof_acc: ProfAcc):
 
     hit_table = get_hit_table(prof_acc, 1.0)
 
@@ -31,64 +69,8 @@ def acc_eeplot(prof_acc: ProfAcc, evalue=1e-10):
         dfs.append(df0)
 
     df = concat(dfs).reset_index(drop=True)
-
-    xlabel = "-log10(e-value) (hmmer)"
-    ylabel = "-log10(e-value) (iseq)"
-    df[xlabel] = -log10(df["e-value (hmmer)"])
-    df[ylabel] = -log10(df["e-value (iseq)"])
-
-    rmin = min(df[xlabel].min(), df[ylabel].min())
-    rmax = max(df[xlabel].max(), df[ylabel].max())
-
-    df["symbol"] = "circle"
-    df.loc[df["e-value (iseq)"] > evalue, "symbol"] = "x"
-    fig = px.scatter(
-        df,
-        x=xlabel,
-        y=ylabel,
-        hover_name="hitid",
-        color="profile",
-        hover_data=df.columns,
-        facet_col="hmmer-evalue",
-        symbol="symbol",
-        symbol_map="identity",
-    )
-
-    for col in [1, 2]:
-        fig.add_shape(
-            type="line",
-            x0=rmin,
-            y0=rmin,
-            x1=rmax,
-            y1=rmax,
-            line=dict(
-                color="Crimson",
-                width=1,
-            ),
-            row=1,
-            col=col,
-        )
-        fig.add_shape(
-            type="line",
-            x0=rmin,
-            y0=-log10(evalue),
-            x1=rmax,
-            y1=-log10(evalue),
-            line=dict(
-                color="Crimson",
-                width=1,
-            ),
-            row=1,
-            col=col,
-        )
-
-    fig.update_xaxes(constrain="domain")
-    fig.update_yaxes(constrain="domain")
-
-    gb = prof_acc.genbank_metadata()
-    acc = prof_acc.accession
-    fig.update_layout(showlegend=False, title=f"{acc}: {gb.description} ({gb.kingdom})")
-    return fig
+    df["accession"] = df["target"].str.replace(":.*$", "")
+    return df
 
 
 def get_true_table(prof_acc: ProfAcc, evalue_colname):
@@ -135,6 +117,8 @@ def get_hit_table(prof_acc: ProfAcc, evalue=1.0):
         },
         inplace=True,
     )
+    if "hitid" not in hit_table.columns:
+        hit_table["hitid"] = []
     hit_table = hit_table[
         [
             "profile",
@@ -147,3 +131,62 @@ def get_hit_table(prof_acc: ProfAcc, evalue=1.0):
         ]
     ]
     return hit_table
+
+
+def _plot(df: DataFrame, evalue: float, color: str, title: str):
+    xlabel = "-log10(e-value) (hmmer)"
+    ylabel = "-log10(e-value) (iseq)"
+    df[xlabel] = -log10(df["e-value (hmmer)"])
+    df[ylabel] = -log10(df["e-value (iseq)"])
+
+    rmin = min(df[xlabel].min(), df[ylabel].min())
+    rmax = max(df[xlabel].max(), df[ylabel].max())
+
+    df["symbol"] = "circle"
+    df.loc[df["e-value (iseq)"] > evalue, "symbol"] = "x"
+    fig = px.scatter(
+        df,
+        x=xlabel,
+        y=ylabel,
+        hover_name=color,
+        color=color,
+        hover_data=df.columns,
+        facet_col="hmmer-evalue",
+        symbol="symbol",
+        symbol_map="identity",
+    )
+
+    for col in [1, 2]:
+        fig.add_shape(
+            type="line",
+            x0=rmin,
+            y0=rmin,
+            x1=rmax,
+            y1=rmax,
+            line=dict(
+                color="Crimson",
+                width=1,
+            ),
+            row=1,
+            col=col,
+        )
+
+        fig.add_scatter(
+            x=[rmin, rmax],
+            y=[-log10(evalue)] * 2,
+            line=dict(
+                color="Crimson",
+                width=1,
+            ),
+            mode="lines+text",
+            row=1,
+            col=col,
+            text=["", f"e-value={evalue} (iseq)"],
+            textposition="top left",
+        )
+
+    fig.update_xaxes(constrain="domain")
+    fig.update_yaxes(constrain="domain")
+
+    fig.update_layout(showlegend=False, title=title)
+    return fig

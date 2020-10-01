@@ -57,6 +57,12 @@ __all__ = ["plot_prof_hits"]
     ),
     default=None,
 )
+@click.option(
+    "--title-append",
+    help="Add to title.",
+    type=str,
+    default="",
+)
 def plot_prof_hits(
     experiment: str,
     output: str,
@@ -64,6 +70,7 @@ def plot_prof_hits(
     percentile: int,
     min_hmmer_hits: int,
     clan_filepath: Optional[str],
+    title_append: str,
 ):
     """
     Show profile hits.
@@ -127,6 +134,9 @@ def plot_prof_hits(
         barmode="group",
         hover_data=["profile", "count", "ratio"],
     )
+    title = "Number of matches per profile (multihit=discard)"
+    title += title_append
+    fig.update_layout(title=title)
     outpath = Path(output)
     if outpath.suffix == ".html":
         fig.write_html(str(outpath))
