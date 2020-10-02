@@ -17,7 +17,7 @@ from ._accession import Accession
 from ._confusion import ConfusionMatrix
 from ._file import assert_file_exist
 from ._tables import domtbl_as_dataframe
-from .solut_space import SampleType, SolutSpace, SolutSpaceType
+from .solut_space import SolutSpace, SolutSpaceType
 
 __all__ = ["ProfAcc", "ProfAccFiles"]
 
@@ -126,11 +126,10 @@ class ProfAcc:
 
     def score(
         self,
+        space_type: SolutSpaceType,
         e_value: float,
-        solut_space=SampleType.PROF_TARGET,
-        solut_space_idx=True,
     ) -> Score:
-        cm = self.confusion_matrix(solut_space, solut_space_idx)
+        cm = self.confusion_matrix(space_type)
         i = cm.cutpoint(e_value)
         sensitivity = cm.sensitivity[i]
         specifity = cm.specifity[i]

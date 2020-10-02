@@ -1,10 +1,12 @@
+from itertools import product
 from pathlib import Path
 
 import click
 import pandas as pd
 
-from .._prof_acc import SampleType, Score
+from .._prof_acc import Score
 from .._profiling import Profiling
+from ..solut_space import SampleType, SolutSpaceType
 
 __all__ = ["compute_scores"]
 
@@ -21,12 +23,6 @@ __all__ = ["compute_scores"]
     type=str,
 )
 @click.option(
-    "--e-value",
-    help="E-value threshold.",
-    type=float,
-    default=1e-10,
-)
-@click.option(
     "--force/--no-force",
     help="Enable overwrite of files. Defaults to False.",
     default=False,
@@ -34,7 +30,6 @@ __all__ = ["compute_scores"]
 def compute_scores(
     experiment: str,
     accession: str,
-    e_value: float,
     force: bool,
 ):
     """
@@ -54,15 +49,17 @@ def compute_scores(
         SampleType.PROF,
         SampleType.TARGET,
     ]
+    evalues = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10]
+    repeats = [True, False]
     rows = []
-    for space_type in space_types:
-        for repeat in [True, False]:
-            score = pa.score(e_value, space_type, repeat)
-            row = score.asdict()
-            row["space_type"] = space_type.name
-            row["space_repeat"] = repeat
-            rows.append(row)
+    for space_type, repeat, evalue in product(space_types, repeats, evalues):
+        score = pa.score(SolutSpaceType(space_type, not repeat), evalue)
+        row = score.asdict()
+        row["space_type"] = space_type.name
+        row["space_repeat"] = repeat
+        row["e_value"] = evalue
+        rows.append(row)
 
     df = pd.DataFrame(rows)
-    df = df[["space_type", "space_repeat"] + Score.field_names()]
+    df = df[["space_type", "space_repeat"] + Score.field_names() + ["e_value"]]
     df.to_csv(output, sep=",", index=False)

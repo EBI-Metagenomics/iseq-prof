@@ -7,8 +7,8 @@ from numpy import linspace, stack
 from pandas import DataFrame, concat
 from tqdm import tqdm
 
-from .._prof_acc import SampleType
 from .._profiling import Profiling
+from ..solut_space import SampleType
 
 __all__ = ["roc"]
 

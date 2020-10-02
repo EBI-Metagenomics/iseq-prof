@@ -2,7 +2,7 @@ import click
 import pandas as pd
 from tabulate import tabulate
 
-from .._prof_acc import SampleType
+from ..solut_space import SampleType
 
 __all__ = ["get_solut_space", "show_true_table_profile", "show_hit_table_profile"]
 
