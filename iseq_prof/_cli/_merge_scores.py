@@ -50,6 +50,8 @@ def merge_scores(
         "pr_auc",
         "space_type",
         "space_repeat",
+        "space_repeat",
+        "e_value",
     ]
     df = df[dimensions].reset_index(drop=True)
     df.to_csv(Path(output_file), index=False)
