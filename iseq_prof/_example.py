@@ -24,6 +24,7 @@ goodboy = pooch.create(
         "AE014075.1.gb.gz": "827328678b7038ed2125e8ee57e3bceb5e4abad3df62cdb9e809ac2fbbb02a08",
         "CP041245.1_amino.fasta.gz": "5afe702f46c0dfd0fd23bf60b02a94d101cc62e7762085f4f3a45162cdf6b6b8",
         "CP041245.1_nucl.fasta.gz": "76fcfe371714ea7a56a13542eb492d1ebef31dc6bba23a1e178b3106cf4ccc5b",
+        "Pfam33.1_clans.csv.gz": "ea6ab5ab86f00e148a62d324da3d322a355926035f7861d137ba884e18bf86b0",
     },
 )
 

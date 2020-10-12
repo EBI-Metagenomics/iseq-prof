@@ -1,8 +1,7 @@
 from importlib import import_module as _import_module
 
-from . import fasta, plot, solut_space
+from . import fasta, pfam, plot, solut_space
 from ._accession import Accession
-from ._clan import Clans
 from ._cli import cli
 from ._confusion import ConfusionMatrix
 from ._env import ISEQ_PROF_CACHE_HOME
@@ -19,7 +18,6 @@ except ModuleNotFoundError:
 
 __all__ = [
     "Accession",
-    "Clans",
     "ConfusionMatrix",
     "GenBank",
     "ISEQ_PROF_CACHE_HOME",
@@ -31,6 +29,7 @@ __all__ = [
     "fasta",
     "genbank",
     "genbank_catalog",
+    "pfam",
     "plot",
     "solut_space",
     "test",

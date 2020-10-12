@@ -4,7 +4,7 @@ import click
 import hmmer_reader
 from hmmer import HMMER
 
-from .._clan import Clans
+from ..pfam import Clans
 
 __all__ = ["hmm_filter"]
 

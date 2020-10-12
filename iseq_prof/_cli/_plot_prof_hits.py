@@ -11,8 +11,8 @@ import pandas as pd
 import plotly.express as px
 from tqdm import tqdm
 
-from .._clan import Clans
 from .._profiling import Profiling
+from ..pfam import Clans
 from ..solut_space import Sample
 
 __all__ = ["plot_prof_hits"]
