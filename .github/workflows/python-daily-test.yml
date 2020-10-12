@@ -1,10 +1,8 @@
-name: Python test
+name: Python daily test
 
 on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  schedule:
+    - cron:  '0 3,13 * * *'
 
 jobs:
   build:
@@ -12,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8]
+        python-version: [3.8]
 
     steps:
     - uses: actions/checkout@v2
@@ -32,4 +30,4 @@ jobs:
     - name: Test
       run: |
         pip install -e .
-        pytest
+        pytest --runslow

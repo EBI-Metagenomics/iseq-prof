@@ -53,6 +53,14 @@ class GenBank:
 
     @staticmethod
     def latest_catalog_version() -> int:
+        """
+        Fetch the version number of the latest GenBank catalog.
+
+        Returns
+        -------
+        int
+            Latest version number.
+        """
         ftp = FTP(NCBI_HOST, user="anonymous")
 
         for item in ftp.mlsd("genbank/catalog"):
@@ -80,7 +88,10 @@ class GenBank:
         if version == 238:
             filepath = example_filepath("gb238.catalog.tsv")
             dtype = CATALOG_METADATA
-            return read_csv(filepath, sep="\t", header=0, dtype=dtype, engine="c")
+            df = read_csv(filepath, sep="\t", header=0, dtype=dtype, engine="c")
+            cols = list(CATALOG_METADATA.keys())
+            df.sort_values(cols, inplace=True, kind="mergesort")
+            return df.reset_index(drop=True)
 
         dbs = ["gss", "other"]
         df = concat([fetch_catalog(db, version) for db in dbs], ignore_index=True)
@@ -88,7 +99,8 @@ class GenBank:
         idxmax = df.reset_index().groupby(["Organism"])["BasePairs"].idxmax()
         df = df.loc[idxmax]
 
-        return df
+        df.sort_values(list(CATALOG_METADATA.keys()), inplace=True, kind="mergesort")
+        return df.reset_index(drop=True)
 
     @staticmethod
     def download(accession: str, rettype: str, output: Path):

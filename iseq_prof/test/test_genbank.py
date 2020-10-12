@@ -34,25 +34,41 @@ def test_genbank_catalog():
     df = GenBank.catalog()
 
     assert_that(df["Version"].dtype).is_equal_to(dtype(object))
-    assert_that(df["Version"][30241]).is_equal_to("KF625614.1")
+    assert_that(df["Version"][30241]).is_equal_to("AY575929.1")
 
     mols = df["MolType"].unique().tolist()
     assert_that(mols).is_equal_to(["DNA", "RNA"])
 
     assert_that(df["BasePairs"].dtype).is_equal_to(dtype("int64"))
-    assert_that(df["BasePairs"][275890 - 1]).is_equal_to(3415)
+    assert_that(df["BasePairs"][275890 - 1]).is_equal_to(1760)
 
     assert_that(df["Organism"].dtype).is_equal_to(dtype(object))
-    assert_that(df["Organism"][235890]).is_equal_to("Shuttle vector pP01680-LipB-cel8A")
+    assert_that(df["Organism"][235890]).is_equal_to(
+        "Moricandia moricandioides subsp. giennensis"
+    )
 
     assert_that(df["TaxID"].dtype).is_equal_to(dtype("int32"))
-    assert_that(df["TaxID"][35890]).is_equal_to(1034573)
+    assert_that(df["TaxID"][35890]).is_equal_to(227691)
 
     assert_that(df.shape).is_equal_to((275890, 5))
 
 
 def test_genbank_catalog_version():
     assert_that(GenBank.latest_catalog_version()).is_greater_than(238)
+
+
+@pytest.mark.slow
+def test_genbank_catalog_fetch_latest(tmp_path: Path):
+    version = GenBank.latest_catalog_version()
+    df = GenBank.catalog(version)
+    df.to_csv(tmp_path / "new_catalog", index=False)
+
+    df = GenBank.catalog()
+    df.to_csv(tmp_path / "old_catalog", index=False)
+
+    breakpoint()
+    simi = _file_similarity(tmp_path / "new_catalog", tmp_path / "old_catalog")
+    assert_that(simi).is_greater_than(0.7)
 
 
 def test_genbank_gb(tmp_path: Path):
@@ -65,3 +81,13 @@ def test_genbank_gb(tmp_path: Path):
     nucl = example_filepath("CP041245.1_nucl.fasta")
     assert_that(contents_of(amino)).is_equal_to(contents_of(amino_fp))
     assert_that(contents_of(nucl)).is_equal_to(contents_of(nucl_fp))
+
+
+def _file_similarity(a_fp: Path, b_fp: Path) -> float:
+    with open(a_fp, "r") as file:
+        a = set([hash(row) for row in file.readlines()])
+
+    with open(b_fp, "r") as file:
+        b = set([hash(row) for row in file.readlines()])
+
+    return len(a & b) / len(a | b)
