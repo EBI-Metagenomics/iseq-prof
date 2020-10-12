@@ -1,11 +1,9 @@
 from importlib import import_module as _import_module
 
-from . import fasta, pfam, plot, solut_space
+from . import fasta, filedb, pfam, plot, solut_space
 from ._accession import Accession
 from ._cli import cli
 from ._confusion import ConfusionMatrix
-from ._env import ISEQ_PROF_CACHE_HOME
-from ._example import example_filepath
 from ._genbank import GenBank, genbank_catalog
 from ._prof_acc import ProfAcc
 from ._profiling import Profiling
@@ -20,13 +18,12 @@ __all__ = [
     "Accession",
     "ConfusionMatrix",
     "GenBank",
-    "ISEQ_PROF_CACHE_HOME",
     "ProfAcc",
     "Profiling",
     "__version__",
     "cli",
-    "example_filepath",
     "fasta",
+    "filedb",
     "genbank",
     "genbank_catalog",
     "pfam",

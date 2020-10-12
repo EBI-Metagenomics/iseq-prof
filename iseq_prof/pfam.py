@@ -9,7 +9,7 @@ from urllib.request import urlopen
 import chardet
 from pandas import DataFrame, concat, read_csv
 
-from ._example import example_filepath
+from . import filedb
 
 __all__ = ["Clans", "latest_version", "make_csv"]
 
@@ -52,7 +52,7 @@ def latest_version() -> str:
 class Clans:
     def __init__(self, version: str = "33.1"):
         if version == "33.1":
-            fp = example_filepath("Pfam33.1_clans.csv")
+            fp = filedb.get("Pfam33.1_clans.csv")
             df = read_csv(fp, header=0, engine="c")
         else:
             df = fetch_dataframe(version)

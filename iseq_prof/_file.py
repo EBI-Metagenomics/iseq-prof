@@ -23,13 +23,3 @@ def inplace(filepath: Path):
 def assert_file_exist(filepath: Path):
     if not filepath.exists():
         raise RuntimeError(f"{filepath} does not exist.")
-
-
-def file_similarity(a: Path, b: Path) -> float:
-    with open(a, "r") as file:
-        left = set([hash(row) for row in file.readlines()])
-
-    with open(b, "r") as file:
-        right = set([hash(row) for row in file.readlines()])
-
-    return len(left & right) / len(left | right)

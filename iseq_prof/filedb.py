@@ -3,14 +3,12 @@ from pathlib import Path
 
 import pooch
 
-from ._env import ISEQ_PROF_CACHE_HOME
-
-__all__ = ["example_filepath"]
+__all__ = ["get"]
 
 pooch.get_logger().setLevel(logging.ERROR)
 
 goodboy = pooch.create(
-    path=ISEQ_PROF_CACHE_HOME / "test_data",
+    path=pooch.os_cache("iseq-prof"),
     base_url="https://iseq-prof.s3.eu-west-2.amazonaws.com/",
     registry={
         "AE014075.1_cds_amino.fasta.gz": "d36e9c6273d913d80cd84ca2a770d20e963f25b3de8f7d85c92e2e7c07f9ff16",
@@ -29,5 +27,5 @@ goodboy = pooch.create(
 )
 
 
-def example_filepath(filename: str) -> Path:
+def get(filename: str) -> Path:
     return Path(goodboy.fetch(filename + ".gz", processor=pooch.Decompress()))

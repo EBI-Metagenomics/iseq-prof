@@ -2,7 +2,7 @@ import os
 import shutil
 from pathlib import Path
 
-from iseq_prof import Profiling, example_filepath
+from iseq_prof import Profiling, filedb
 from iseq_prof.solut_space import SampleType, SolutSpaceType
 from numpy.testing import assert_allclose
 
@@ -14,26 +14,26 @@ def test_profiling(tmp_path):
 
     root = Path(tmp_path)
 
-    hmmer = example_filepath("Pfam-A_24.hmm")
+    hmmer = filedb.get("Pfam-A_24.hmm")
     shutil.copyfile(hmmer, root / "db.hmm")
     shutil.copyfile(hmmer, root / acc / "dbspace.hmm")
 
     with open(root / "params.txt", "w") as file:
         file.write("")
 
-    domtblout = example_filepath(f"{acc}_domtblout.txt")
+    domtblout = filedb.get(f"{acc}_domtblout.txt")
     shutil.copyfile(domtblout, root / acc / "domtblout.txt")
 
-    cds_amino = example_filepath(f"{acc}_cds_amino.fasta")
+    cds_amino = filedb.get(f"{acc}_cds_amino.fasta")
     shutil.copyfile(cds_amino, root / acc / "cds_amino.fasta")
 
-    cds_nucl = example_filepath(f"{acc}_cds_nucl.fasta")
+    cds_nucl = filedb.get(f"{acc}_cds_nucl.fasta")
     shutil.copyfile(cds_nucl, root / acc / "cds_nucl.fasta")
 
-    output = example_filepath(f"{acc}_output.gff")
+    output = filedb.get(f"{acc}_output.gff")
     shutil.copyfile(output, root / acc / "output.gff")
 
-    output = example_filepath(f"{acc}.gb")
+    output = filedb.get(f"{acc}.gb")
     shutil.copyfile(output, root / acc / f"{acc}.gb")
 
     prof = Profiling(Path(tmp_path))

@@ -1,13 +1,13 @@
 from pathlib import Path
 
 from assertpy import assert_that, contents_of
-from iseq_prof import example_filepath, fasta
+from iseq_prof import fasta, filedb
 from numpy.random import RandomState
 
 
 def test_fasta_downsample(tmp_path: Path):
     acc = "AE014075.1"
-    infasta = example_filepath(f"{acc}_cds_nucl.fasta")
+    infasta = filedb.get(f"{acc}_cds_nucl.fasta")
 
     random = RandomState(34)
     outfasta = tmp_path / "downsample.fasta"

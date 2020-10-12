@@ -14,7 +14,7 @@ from iseq.gencode import GeneticCode
 from pandas import DataFrame, concat, read_csv
 from tqdm import tqdm
 
-from ._example import example_filepath
+from .filedb import get
 
 __all__ = ["GenBank", "genbank_catalog"]
 
@@ -86,7 +86,7 @@ class GenBank:
         """
 
         if version == 238:
-            filepath = example_filepath("gb238.catalog.tsv")
+            filepath = get("gb238.catalog.tsv")
             dtype = CATALOG_METADATA
             df = read_csv(filepath, sep="\t", header=0, dtype=dtype, engine="c")
             cols = list(CATALOG_METADATA.keys())
@@ -223,7 +223,7 @@ def genbank_catalog() -> DataFrame:
         GenBank catalog.
     """
 
-    filepath = example_filepath("gb238.catalog.tsv")
+    filepath = get("gb238.catalog.tsv")
     dtype = {
         "Version": str,
         "MolType": "category",
