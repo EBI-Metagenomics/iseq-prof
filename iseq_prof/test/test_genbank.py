@@ -66,7 +66,6 @@ def test_genbank_catalog_fetch_latest(tmp_path: Path):
     df = GenBank.catalog()
     df.to_csv(tmp_path / "old_catalog", index=False)
 
-    breakpoint()
     simi = _file_similarity(tmp_path / "new_catalog", tmp_path / "old_catalog")
     assert_that(simi).is_greater_than(0.7)
 
