@@ -1,12 +1,17 @@
+from collections import OrderedDict
+from ftplib import FTP
 from pathlib import Path
+from typing import List
 
 import nmm
 from Bio import Entrez, SeqIO
 from Bio.Data import IUPACData
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from deprecated import deprecated
 from iseq.codon_table import CodonTable
 from iseq.gencode import GeneticCode
+from pandas import DataFrame, concat, read_csv
 from tqdm import tqdm
 
 from ._example import example_filepath
@@ -14,29 +19,17 @@ from ._example import example_filepath
 __all__ = ["GenBank", "genbank_catalog"]
 
 
-def genbank_catalog():
-    """
-    Trimmed down GenBank organisms catalog.
+NCBI_HOST = "ftp.ncbi.nlm.nih.gov"
 
-    This catalog will contain only unique organism names that has been selected
-    by having a long sequence as we are intereted in whole genome sequences only.
-
-    Returns
-    -------
-    DataFrame
-        GenBank catalog.
-    """
-    from pandas import read_csv
-
-    filepath = example_filepath("gb238.catalog.tsv")
-    dtype = {
-        "Version": str,
-        "MolType": "category",
-        "BasePairs": int,
-        "Organism": str,
-        "TaxID": int,
-    }
-    return read_csv(filepath, sep="\t", header=0, dtype=dtype)
+CATALOG_METADATA = OrderedDict(
+    [
+        ("Version", "str"),
+        ("MolType", "category"),
+        ("BasePairs", "int64"),
+        ("Organism", "str"),
+        ("TaxID", "int32"),
+    ]
+)
 
 
 class GenBank:
@@ -57,6 +50,45 @@ class GenBank:
             self._accession = rec.version
 
         self._filepath = filepath
+
+    @staticmethod
+    def latest_catalog_version() -> int:
+        ftp = FTP(NCBI_HOST, user="anonymous")
+
+        for item in ftp.mlsd("genbank/catalog"):
+            filename = item[0]
+            if "catalog.gss.txt" in filename:
+                return int(filename.partition(".")[0][2:])
+
+        msg = "Could not fetch the latest GenkBank version number."
+        raise RuntimeError(msg)
+
+    @staticmethod
+    def catalog(version: int = 238) -> DataFrame:
+        """
+        Trimmed down GenBank organisms catalog.
+
+        This catalog will contain only unique organism names that has been selected
+        by having a long sequence as we are intereted in whole genome sequences only.
+
+        Returns
+        -------
+        DataFrame
+            GenBank catalog (trimmed down).
+        """
+
+        if version == 238:
+            filepath = example_filepath("gb238.catalog.tsv")
+            dtype = CATALOG_METADATA
+            return read_csv(filepath, sep="\t", header=0, dtype=dtype, engine="c")
+
+        dbs = ["gss", "other"]
+        df = concat([fetch_catalog(db, version) for db in dbs], ignore_index=True)
+
+        idxmax = df.reset_index().groupby(["Organism"])["BasePairs"].idxmax()
+        df = df.loc[idxmax]
+
+        return df
 
     @staticmethod
     def download(accession: str, rettype: str, output: Path):
@@ -163,6 +195,78 @@ class GenBank:
 
         nucl_output.close()
         amino_output.close()
+
+
+@deprecated(version="0.0.3", reason="Please, use `iseq_prof.GenBank.calotog` instead")
+def genbank_catalog() -> DataFrame:
+    """
+    Trimmed down GenBank organisms catalog.
+
+    This catalog will contain only unique organism names that has been selected
+    by having a long sequence as we are intereted in whole genome sequences only.
+
+    Returns
+    -------
+    DataFrame
+        GenBank catalog.
+    """
+
+    filepath = example_filepath("gb238.catalog.tsv")
+    dtype = {
+        "Version": str,
+        "MolType": "category",
+        "BasePairs": int,
+        "Organism": str,
+        "TaxID": int,
+    }
+    return read_csv(filepath, sep="\t", header=0, dtype=dtype, engine="c")
+
+
+def fetch_catalog(db: str, version: int):
+    ORIG_METADATA = OrderedDict(
+        [
+            ("Accession", "str"),
+            ("Version", "str"),
+            ("ID", "str"),
+            ("MolType", "category"),
+            ("BasePairs", "int64"),
+            ("Organism", "str"),
+            ("TaxID", "str"),
+            ("DB", "str"),
+            ("BioProject", "str"),
+            ("BioSample", "str"),
+        ]
+    )
+
+    url = f"ftp://{NCBI_HOST}/genbank/"
+    url += f"catalog/gb{version}.catalog.{db}.txt.gz"
+    sep = "\t"
+
+    csv_iter = read_csv(
+        url,
+        sep=sep,
+        chunksize=100_000,
+        iterator=True,
+        names=list(ORIG_METADATA.keys()),
+        dtype=ORIG_METADATA,
+    )
+
+    dfs: List[DataFrame] = []
+    for df in csv_iter:
+        df = df[(df["MolType"] == "RNA") | (df["MolType"] == "DNA")]
+        df = df[df["TaxID"] != "NoTaxID"]
+        # The DNA sequence for Porcine circovirus type 2 strain MLP-22
+        # is 1726 base pairs long.
+        df = df[df["BasePairs"].astype("int64") >= 1726]
+        df = df[CATALOG_METADATA.keys()]
+        dfs.append(df)
+
+    df = concat(dfs, ignore_index=True)
+
+    for name, typ in CATALOG_METADATA.items():
+        df[name] = df[name].astype(typ)
+
+    return df
 
 
 def is_alphabet_ambiguous(seq):

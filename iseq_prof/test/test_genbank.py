@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 from assertpy import assert_that, contents_of
 from iseq_prof import GenBank, example_filepath, genbank_catalog
 
@@ -21,7 +22,8 @@ def test_genbank_fasta_download(tmp_path: Path):
 
 
 def test_genbank_catalog():
-    df = genbank_catalog()
+    with pytest.warns(DeprecationWarning):
+        df = genbank_catalog()
     mols = df["MolType"].unique().tolist()
     assert_that(mols).is_equal_to(["DNA", "RNA"])
     assert_that(df.shape).is_equal_to((275890, 5))
