@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 from assertpy import assert_that, contents_of
 from iseq_prof import GenBank, example_filepath, genbank_catalog
+from numpy import dtype
 
 
 def test_genbank_gb_download(tmp_path: Path):
@@ -21,12 +22,37 @@ def test_genbank_fasta_download(tmp_path: Path):
     assert_that(contents_of(fasta)).is_equal_to(contents_of(output))
 
 
-def test_genbank_catalog():
+def test_genbank_catalog_deprecated():
     with pytest.warns(DeprecationWarning):
         df = genbank_catalog()
     mols = df["MolType"].unique().tolist()
     assert_that(mols).is_equal_to(["DNA", "RNA"])
     assert_that(df.shape).is_equal_to((275890, 5))
+
+
+def test_genbank_catalog():
+    df = GenBank.catalog()
+
+    assert_that(df["Version"].dtype).is_equal_to(dtype(object))
+    assert_that(df["Version"][30241]).is_equal_to("KF625614.1")
+
+    mols = df["MolType"].unique().tolist()
+    assert_that(mols).is_equal_to(["DNA", "RNA"])
+
+    assert_that(df["BasePairs"].dtype).is_equal_to(dtype("int64"))
+    assert_that(df["BasePairs"][275890 - 1]).is_equal_to(3415)
+
+    assert_that(df["Organism"].dtype).is_equal_to(dtype(object))
+    assert_that(df["Organism"][235890]).is_equal_to("Shuttle vector pP01680-LipB-cel8A")
+
+    assert_that(df["TaxID"].dtype).is_equal_to(dtype("int32"))
+    assert_that(df["TaxID"][35890]).is_equal_to(1034573)
+
+    assert_that(df.shape).is_equal_to((275890, 5))
+
+
+def test_genbank_catalog_version():
+    assert_that(GenBank.latest_catalog_version()).is_greater_than(238)
 
 
 def test_genbank_gb(tmp_path: Path):

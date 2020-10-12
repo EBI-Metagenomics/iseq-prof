@@ -271,27 +271,15 @@ def fetch_catalog(db: str, version: int):
 
 def is_alphabet_ambiguous(seq):
 
-    # if isinstance(seq.alphabet, DNAAlphabet):
     remains = len(set(str(seq)) - set(IUPACData.unambiguous_dna_letters))
     if remains == 0:
         return False
-    # if remains > 0:
-    #     return True
 
     remains = len(set(str(seq)) - set(IUPACData.unambiguous_rna_letters))
     if remains == 0:
         return False
 
-    # elif isinstance(seq.alphabet, RNAAlphabet):
-    #     remains = len(set(str(seq)) - set(IUPACData.unambiguous_rna_letters))
-    #     if remains > 0:
-    #         return True
-
     return True
-    # else:
-    #     raise ValueError("Unkown alphabet.")
-
-    # return False
 
 
 def get_nucl_alphabet(seq):
@@ -302,16 +290,6 @@ def get_nucl_alphabet(seq):
     remains = len(set(str(seq)) - set(IUPACData.unambiguous_rna_letters))
     if remains == 0:
         return "rna"
-
-    # if isinstance(seq.alphabet, DNAAlphabet):
-    #     remains = len(set(str(seq)) - set(IUPAC.unambiguous_dna.letters))
-    #     assert remains == 0
-    #     return "dna"
-
-    # if isinstance(seq.alphabet, RNAAlphabet):
-    #     remains = len(set(str(seq)) - set(IUPAC.unambiguous_rna.letters))
-    #     assert remains == 0
-    #     return "rna"
 
     raise ValueError("Unkown alphabet.")
 
