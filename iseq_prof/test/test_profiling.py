@@ -11,7 +11,9 @@ def test_profiling_iseq_cds_coverage(tmp_path: Path):
     acc = "AE009441.1"
 
     prof = Profiling(root)
-    assert_that(prof.iseq_cds_coverage(acc)).is_close_to(0.9044145873320537)
+    expected = 0.9044145873320537
+    tol = 1e-7
+    assert_that(prof.iseq_cds_coverage(acc)).is_close_to(expected, tol)
 
 
 def test_profiling_merge_chunks(tmp_path: Path):
