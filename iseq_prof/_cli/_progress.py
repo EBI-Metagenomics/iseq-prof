@@ -17,9 +17,9 @@ __all__ = ["progress"]
 @click.argument("accession", type=str)
 def progress(experiment: str, accession: str):
     """
-    Show information about accession.
+    Show ISEQ CDS coverage as an indicator to experiment progress.
     """
     root = Path(experiment)
     prof = Profiling(root)
-    perc = int(100 * prof.progress(accession))
-    click.echo(f"{perc:3d}%")
+    perc = int(100 * prof.iseq_cds_coverage(accession))
+    click.echo(f"ISEQ CDS coverage: {perc:3d}%")

@@ -23,9 +23,13 @@ goodboy = pooch.create(
         "CP041245.1_amino.fasta.gz": "5afe702f46c0dfd0fd23bf60b02a94d101cc62e7762085f4f3a45162cdf6b6b8",
         "CP041245.1_nucl.fasta.gz": "76fcfe371714ea7a56a13542eb492d1ebef31dc6bba23a1e178b3106cf4ccc5b",
         "Pfam33.1_clans.csv.gz": "ea6ab5ab86f00e148a62d324da3d322a355926035f7861d137ba884e18bf86b0",
+        "output.tar.lzma": "17eb72b66aeeae4431a4546f78e20437eb62199f5967c43d8bb280eab7b9d93c",
     },
 )
 
 
 def get(filename: str) -> Path:
-    return Path(goodboy.fetch(filename + ".gz", processor=pooch.Decompress()))
+    try:
+        return Path(goodboy.fetch(filename + ".gz", processor=pooch.Decompress()))
+    except ValueError:
+        return Path(goodboy.fetch(filename))

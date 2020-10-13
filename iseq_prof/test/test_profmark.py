@@ -2,7 +2,6 @@ import os
 import shutil
 from pathlib import Path
 
-from assertpy import assert_that
 from iseq_prof import Profiling, filedb
 from iseq_prof.solut_space import SampleType, SolutSpaceType
 from numpy.testing import assert_allclose
@@ -39,24 +38,6 @@ def test_profiling(tmp_path):
 
     prof = Profiling(Path(tmp_path))
     pa = prof.read_accession(acc)
-    assert_that(pa.accession.name).is_equal_to("AE014075.1")
-    assert_that(pa.accession.taxonomy).is_equal_to(
-        [
-            "Bacteria",
-            "Proteobacteria",
-            "Gammaproteobacteria",
-            "Enterobacterales",
-            "Enterobacteriaceae",
-            "Escherichia",
-        ]
-    )
-    assert_that(pa.accession.order).is_equal_to("Enterobacterales")
-    assert_that(pa.accession.domain).is_equal_to("Bacteria")
-    assert_that(pa.accession.phylum).is_equal_to("Proteobacteria")
-    assert_that(pa.accession.class_).is_equal_to("Gammaproteobacteria")
-
-    assert_that(pa.accession.molecule).is_equal_to("DNA")
-    assert_that(str(pa.accession)).is_equal_to("<AE014075.1>")
 
     tpr = [
         0.0,

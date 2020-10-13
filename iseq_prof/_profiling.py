@@ -23,7 +23,15 @@ class Profiling:
         assert self._hmmdb.exists()
         assert self._params.exists()
 
-    def progress(self, accession: str) -> float:
+    def iseq_cds_coverage(self, accession: str) -> float:
+        """
+        Fraction of CDS matches from organism CDSs.
+
+        Returns
+        -------
+        float
+            Fraction of matches.
+        """
         chunks_dir = Path(self._root / accession / "chunks")
         if not chunks_dir.exists():
             return 0.0
@@ -36,18 +44,18 @@ class Profiling:
         cds_ids = []
         with open_fasta(cds_amino_file) as file:
             for item in file:
-                cds_ids.append(item.id.split("|")[0])
+                cds_ids.append(item.id.partition("|")[0])
 
-        processed_cds_ids = []
+        cds_id_matches = []
         for f in chunks_dir.glob("*.gff"):
             gff = iseq.gff.read(f)
             ids = gff.dataframe["seqid"].str.replace(r"\|.*", "")
-            processed_cds_ids += ids.tolist()
+            cds_id_matches += ids.tolist()
 
         cds_set = set(cds_ids)
-        proc_set = set(processed_cds_ids)
-        nremain = len(cds_set - proc_set)
-        return 1 - round(nremain / len(cds_set))
+        match_set = set(cds_id_matches)
+        nremain = len(cds_set - match_set)
+        return 1 - nremain / len(cds_set)
 
     def merge_chunks(self, accession: str, force=False):
         """
