@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 import numba
+from numpy import asarray, empty, linspace, searchsorted
 
 __all__ = ["ConfusionMatrix", "ROCCurve", "PRCurve"]
 
@@ -18,9 +19,13 @@ class ConfusionMatrix:
     true_samples
         Set of all positive samples from the solution space.
     N
-        Number of negative samples.
+        Number of negative samples from the solution space.
     sorted_samples
         Samples sorted from the most to the least likely one to be considered positive.
+        Those samples are usually scored by a method being assessed.
+    sample_scores
+        Score of each sample from `sorted_samples` in sequence. It therefore has to
+        be a monotonically non-decreasing sequence of numbers.
     """
 
     def __init__(
@@ -30,8 +35,6 @@ class ConfusionMatrix:
         sorted_samples: Iterable[int],
         sample_scores: Optional[Iterable[float]] = None,
     ):
-        from numpy import asarray, empty, linspace
-
         if len(set(sorted_samples) - set(true_samples)) > N:
             raise ValueError("Invalid number of negative samples.")
 
@@ -56,13 +59,9 @@ class ConfusionMatrix:
         return self._sample_scores
 
     def cutpoint(self, score: float) -> int:
-        from numpy import searchsorted
-
         return searchsorted(self._sample_scores, score, side="right")
 
     def _set_tp_fp(self, true_samples, sorted_samples):
-        from numpy import searchsorted
-
         true_samples.sort()
         ins_pos = searchsorted(true_samples, sorted_samples)
         set_tp_fp(self._TP, self._FP, ins_pos, true_samples, sorted_samples)
@@ -296,8 +295,6 @@ class PRCurve:
     """
 
     def __init__(self, recall: Iterable[float], precision: Iterable[float]):
-        from numpy import asarray
-
         self._recall = asarray(recall, float)[1:]
         self._precision = asarray(precision, float)[1:]
 
@@ -313,15 +310,6 @@ class PRCurve:
     def auc(self) -> float:
         return auc(self.recall, self.precision)
 
-    def plot(self, ax=None):
-        xlabel = "recall (sensitivity, true positive rate)"
-        ylabel = "precision (positive predictive value)"
-        title = f"Precision-Recall curve (area={self.auc:6.4f})"
-        ax = plot(self.recall, self.precision, xlabel, ylabel, title, ax)
-        ax.plot([0, 1], [1, 0], linestyle="--")
-        ax.legend(loc="lower left")
-        return ax
-
 
 class ROCCurve:
     """
@@ -329,8 +317,6 @@ class ROCCurve:
     """
 
     def __init__(self, fpr: Iterable[float], tpr: Iterable[float]):
-        from numpy import asarray
-
         self._fpr = asarray(fpr, float)
         self._tpr = asarray(tpr, float)
 
@@ -345,30 +331,6 @@ class ROCCurve:
     @property
     def auc(self) -> float:
         return auc(self.fpr, self.tpr)
-
-    def plot(self, ax=None):
-        xlabel = "false positive rate"
-        ylabel = "true positive rate"
-        title = f"ROC curve (area={self.auc:6.4f})"
-        ax = plot(self.fpr, self.tpr, xlabel, ylabel, title, ax)
-        ax.plot([0, 1], [0, 1], linestyle="--")
-        ax.legend(loc="lower right")
-        return ax
-
-
-def plot(x, y, xlabel, ylabel, title, ax):
-    import seaborn as sns
-    from matplotlib import pyplot as plt
-
-    sns.set(color_codes=True)
-
-    if ax is None:
-        ax = plt.subplots()[1]
-    ax.plot(x, y, label=title)
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-
-    return ax
 
 
 @numba.njit(numba.float64(numba.float64[:], numba.float64[:]), cache=True)
