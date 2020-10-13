@@ -314,8 +314,8 @@ class PRCurve:
         return auc(self.recall, self.precision)
 
     def plot(self, ax=None):
-        xlabel = "recall (sensitivity)"
-        ylabel = "precision"
+        xlabel = "recall (sensitivity, true positive rate)"
+        ylabel = "precision (positive predictive value)"
         title = f"Precision-Recall curve (area={self.auc:6.4f})"
         ax = plot(self.recall, self.precision, xlabel, ylabel, title, ax)
         ax.plot([0, 1], [1, 0], linestyle="--")
