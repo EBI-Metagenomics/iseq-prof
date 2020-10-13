@@ -1,13 +1,23 @@
 import os
 import shutil
+import tarfile
 from pathlib import Path
 
+from assertpy import assert_that
 from iseq_prof import Profiling, filedb
 from iseq_prof.solut_space import SampleType, SolutSpaceType
 from numpy.testing import assert_allclose
 
+# def test_prof_mark(tmp_path):
+#     root = experiment_folder(tmp_path)
+#     acc = "AE009441.1"
+#     prof = Profiling(root)
+#     pa = prof.read_accession(acc)
+#     root
+#     pass
 
-def test_profiling(tmp_path):
+
+def test_prof_acc(tmp_path):
     os.chdir(tmp_path)
     acc = "AE014075.1"
     os.mkdir(acc)
@@ -38,6 +48,8 @@ def test_profiling(tmp_path):
 
     prof = Profiling(Path(tmp_path))
     pa = prof.read_accession(acc)
+
+    assert_that(str(pa.accession)).is_equal_to("<AE014075.1>")
 
     tpr = [
         0.0,
@@ -72,3 +84,13 @@ def test_profiling(tmp_path):
         1.0,
     ]
     assert_allclose(cm.fpr[[0, 5, 10, 40, -2, -1]], fpr)
+
+
+def experiment_folder(root: Path) -> Path:
+
+    filepath = filedb.get("output.tar.lzma")
+
+    with tarfile.open(filepath) as tar:
+        tar.extractall(root)
+
+    return root / "output"
