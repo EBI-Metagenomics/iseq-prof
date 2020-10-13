@@ -145,3 +145,24 @@ def test_confusion_matrix_pr_curve():
     assert_that(pr.recall[420]).is_close_to(0.005, TOL)
     assert_that(pr.precision[420]).is_close_to(0.011876484560570071, TOL)
     assert_that(pr.auc).is_close_to(0.011968350946292153, TOL)
+
+
+def test_confusion_matrix_roc_curve():
+    random = RandomState(8)
+
+    ntrues = 1000
+    nfalses = 207467
+
+    true_samples = random.choice(ntrues + nfalses, ntrues, False)
+
+    nsamples = 500
+    samples = random.choice(ntrues + nfalses, nsamples, False)
+    scores = random.randn(nsamples)
+    idx = argsort(scores)
+
+    cm = ConfusionMatrix(true_samples, nfalses, samples[idx])
+    roc = cm.roc_curve
+
+    assert_that(roc.fpr[420]).is_close_to(0.00200031812288215, TOL)
+    assert_that(roc.tpr[420]).is_close_to(0.005, TOL)
+    assert_that(roc.auc).is_close_to(0.005990475593708879, TOL)
