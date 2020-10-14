@@ -86,17 +86,6 @@ class Profiling:
         merge_files("oamino", "fasta", root, nums, False)
         merge_files("ocodon", "fasta", root, nums, False)
 
-    # def normalize_iseq_files(self, accessions: Iterable[str], verbose=True):
-    #     """
-    #     Normalize segment identifications.
-    #     """
-    #     for acc in tqdm(list(accessions), desc="Normalize"):
-    #         folder = self._root / acc
-    #         output = folder / "output.gff"
-    #         oamino = folder / "oamino.fasta"
-    #         ocodon = folder / "ocodon.fasta"
-    #         normalize_files(output, oamino, ocodon, verbose)
-
     @property
     def accessions(self) -> List[str]:
         accs = [i for i in self._root.glob("*") if i.is_dir()]
@@ -119,36 +108,3 @@ def merge_files(prefix: str, ext: str, acc_path: Path, chunks: List[int], skip: 
                 ofile.write(ifile.read())
 
     return tmp_path.rename(acc_path / f"{prefix}.{ext}")
-
-
-# def normalize_files(output: Path, oamino: Path, ocodon: Path, verbose: bool):
-#     gff = read_gff(output, verbose)
-#     gff_items = gff.items()
-#     gff_header = gff.header
-#     id_map = {}
-#     d = not verbose
-#     l = None
-#     for i, item in tqdm(enumerate(gff_items), desc="Map", disable=d, leave=l):
-#         ID = item.get_attribute("ID")
-#         assert ID not in id_map
-#         id_map[ID] = f"item{i+1}"
-
-#     with inplace(output) as tmp:
-#         with GFFWriter(tmp, gff_header) as writer:
-#             for item in tqdm(gff_items, desc="Output", disable=d, leave=l):
-#                 item.set_attribute("ID", id_map[item.get_attribute("ID")])
-#                 writer.write_item(item)
-
-#     with inplace(oamino) as tmp:
-#         with FASTAWriter(tmp) as writer:
-#             with open_fasta(oamino) as fasta:
-#                 for target in tqdm(iter(fasta), desc="Amino", disable=d, leave=l):
-#                     target.id = id_map[target.id]
-#                     writer.write_item(target.defline, target.sequence)
-
-#     with inplace(ocodon) as tmp:
-#         with FASTAWriter(tmp) as writer:
-#             with open_fasta(ocodon) as fasta:
-#                 for target in tqdm(iter(fasta), desc="Codon", disable=d, leave=l):
-#                     target.id = id_map[target.id]
-#                     writer.write_item(target.defline, target.sequence)
