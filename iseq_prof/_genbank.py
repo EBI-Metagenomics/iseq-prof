@@ -166,13 +166,16 @@ class GenBank:
             if is_alphabet_ambiguous(nucl_rec.seq):
                 continue
 
-            assert len(feature.qualifiers["translation"]) == 1
+            try:
+                assert len(feature.qualifiers["translation"]) == 1
+            except KeyError:
+                continue
+
             if is_extended_protein(feature.qualifiers["translation"][0]):
                 continue
 
             amino_rec: SeqRecord = SeqRecord(
                 Seq(feature.qualifiers["translation"][0]),
-                # Seq(feature.qualifiers["translation"][0], IUPAC.protein),
                 id=nucl_rec.id,
                 name=nucl_rec.name,
                 description=nucl_rec.description,
