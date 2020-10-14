@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 import numba
-from numpy import asarray, empty, linspace, searchsorted
+from numpy import asarray, empty, linspace, searchsorted, trapz
 
 __all__ = ["ConfusionMatrix", "ROCCurve", "PRCurve"]
 
@@ -308,7 +308,7 @@ class PRCurve:
 
     @property
     def auc(self) -> float:
-        return auc(self.recall, self.precision)
+        return trapz(self.precision, x=self.recall)
 
 
 class ROCCurve:
@@ -330,16 +330,4 @@ class ROCCurve:
 
     @property
     def auc(self) -> float:
-        return auc(self.fpr, self.tpr)
-
-
-@numba.njit(numba.float64(numba.float64[:], numba.float64[:]), cache=True)
-def auc(x, y) -> float:
-    left = x[0]
-    area = 0.0
-    for i in range(1, len(x)):
-        width = x[i] - left
-        area += width * y[i - 1]
-        left = x[i]
-    area += (1 - left) * y[-1]
-    return area
+        return trapz(self.tpr, x=self.fpr)

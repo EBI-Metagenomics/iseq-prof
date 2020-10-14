@@ -144,7 +144,7 @@ def test_confusion_matrix_pr_curve():
 
     assert_that(pr.recall[420]).is_close_to(0.005, TOL)
     assert_that(pr.precision[420]).is_close_to(0.011876484560570071, TOL)
-    assert_that(pr.auc).is_close_to(0.011968350946292153, TOL)
+    assert_that(pr.auc).is_close_to(4.98054484430107e-05, TOL)
 
 
 def test_confusion_matrix_roc_curve():
@@ -165,4 +165,4 @@ def test_confusion_matrix_roc_curve():
 
     assert_that(roc.fpr[420]).is_close_to(0.00200031812288215, TOL)
     assert_that(roc.tpr[420]).is_close_to(0.005, TOL)
-    assert_that(roc.auc).is_close_to(0.005990475593708879, TOL)
+    assert_that(roc.auc).is_close_to(4.762203145560528e-06, TOL)

@@ -6,6 +6,7 @@ from iseq_prof import GenBank, filedb, genbank_catalog
 from numpy import dtype
 
 
+@pytest.mark.net
 def test_genbank_gb_download(tmp_path: Path):
     gb = filedb.get("CP041245.1.gb")
     acc = "CP041245.1"
@@ -14,6 +15,7 @@ def test_genbank_gb_download(tmp_path: Path):
     assert_that(contents_of(gb)).is_equal_to(contents_of(output))
 
 
+@pytest.mark.net
 def test_genbank_fasta_download(tmp_path: Path):
     fasta = filedb.get("CP041245.1.fasta")
     acc = "CP041245.1"

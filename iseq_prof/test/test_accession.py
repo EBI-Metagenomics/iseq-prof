@@ -1,7 +1,9 @@
+import pytest
 from assertpy import assert_that
 from iseq_prof import Accession
 
 
+@pytest.mark.net
 def test_accession():
 
     acc = Accession("AE014075.1")

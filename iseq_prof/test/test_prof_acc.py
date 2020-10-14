@@ -8,14 +8,6 @@ from iseq_prof import Profiling, filedb
 from iseq_prof.solut_space import SampleType, SolutSpaceType
 from numpy.testing import assert_allclose
 
-# def test_prof_mark(tmp_path):
-#     root = experiment_folder(tmp_path)
-#     acc = "AE009441.1"
-#     prof = Profiling(root)
-#     pa = prof.read_accession(acc)
-#     root
-#     pass
-
 
 def test_prof_acc(tmp_path):
     os.chdir(tmp_path)
@@ -51,6 +43,7 @@ def test_prof_acc(tmp_path):
 
     assert_that(str(pa.accession)).is_equal_to("<AE014075.1>")
 
+    cm = pa.confusion_matrix(SolutSpaceType(SampleType.PROF_TARGET, False))
     tpr = [
         0.0,
         0.0625,
@@ -71,9 +64,7 @@ def test_prof_acc(tmp_path):
         0.9375,
         1.0,
         1.0,
-        1.0,
     ]
-    cm = pa.confusion_matrix(SolutSpaceType(SampleType.PROF_TARGET, False))
     assert_allclose(cm.tpr[: len(tpr)], tpr)
     fpr = [
         0.0,
@@ -83,7 +74,16 @@ def test_prof_acc(tmp_path):
         0.9955947136563876,
         1.0,
     ]
-    assert_allclose(cm.fpr[[0, 5, 10, 40, -2, -1]], fpr)
+
+    fpr = [
+        0.0,
+        0.004405286343612369,
+        0.004405286343612369,
+        0.004405286343612369,
+        0.004405286343612369,
+        0.008810572687224627,
+    ]
+    assert_allclose(cm.fpr[[0, 5, 10, 13, -2, -1]], fpr)
 
 
 def experiment_folder(root: Path) -> Path:

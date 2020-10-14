@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import itertools
+from abc import ABCMeta
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
@@ -41,8 +42,15 @@ class SampleType(Enum):
     TARGET = 3
 
 
+class MetaSolutSpaceType(ABCMeta):
+    def __iter__(self):
+        for st in SampleType:
+            for b in [False, True]:
+                yield SolutSpaceType(st, b)
+
+
 @dataclass
-class SolutSpaceType:
+class SolutSpaceType(metaclass=MetaSolutSpaceType):
     sample_type: SampleType
     drop_duplicates: bool
 

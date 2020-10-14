@@ -9,13 +9,13 @@ from typing import Any, List, Optional, Type
 from Bio import SeqIO
 from hmmer import read_domtbl
 from iseq.gff import GFF
-from iseq.gff import read as read_gff
 from numpy import dtype, full, inf, zeros
 from pandas import DataFrame
 
 from ._accession import Accession
 from ._confusion import ConfusionMatrix
 from ._file import assert_file_exist
+from ._gff import read_gff
 from ._tables import domtbl_as_dataframe
 from .solut_space import SolutSpace, SolutSpaceType
 
@@ -97,6 +97,9 @@ class ProfAcc:
             )
         return self._solut_space
 
+    def __repr__(self) -> str:
+        return f"ProfAcc({self.accession})"
+
     @property
     def accession(self) -> Accession:
         return self._accession
@@ -113,14 +116,11 @@ class ProfAcc:
 
         P = len(true_sample_ids)
         N = len(sample_space_id) - P
-        sorted_samples = zeros(N + P, int)
-        sample_scores = full(N + P, inf)
+        sorted_samples = zeros(len(ordered_sample_hits), int)
+        sample_scores = full(len(ordered_sample_hits), inf)
         for i, sample in enumerate(ordered_sample_hits):
             sorted_samples[i] = sample_space_id[sample]
             sample_scores[i] = sample.score
-
-        for i, sample in enumerate(sample_space - set(ordered_sample_hits)):
-            sorted_samples[i + len(ordered_sample_hits)] = sample_space_id[sample]
 
         return ConfusionMatrix(true_sample_ids, N, sorted_samples, sample_scores)
 
