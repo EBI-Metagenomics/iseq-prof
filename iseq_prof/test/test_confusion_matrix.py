@@ -1,4 +1,5 @@
 from math import nan
+from pathlib import Path
 
 from assertpy import assert_that
 from iseq_prof import ConfusionMatrix
@@ -166,3 +167,30 @@ def test_confusion_matrix_roc_curve():
     assert_that(roc.fpr[420]).is_close_to(0.00200031812288215, TOL)
     assert_that(roc.tpr[420]).is_close_to(0.005, TOL)
     assert_that(roc.auc).is_close_to(4.762203145560528e-06, TOL)
+
+
+def test_confusion_matrix_write_read(tmp_path: Path):
+
+    random = RandomState(2)
+
+    ntrues = 100
+    nfalses = 100
+
+    true_samples = random.choice(ntrues + nfalses, ntrues, False)
+
+    nsamples = 100
+    samples = random.choice(ntrues + nfalses, nsamples, False)
+    scores = random.randn(nsamples)
+    idx = argsort(scores)
+
+    pr_auc = 0.22942490919917213
+    roc_auc = 0.1277
+
+    cm = ConfusionMatrix(true_samples, nfalses, samples[idx])
+    assert_that(cm.pr_curve.auc).is_close_to(pr_auc, TOL)
+    assert_that(cm.roc_curve.auc).is_close_to(roc_auc, TOL)
+
+    cm.write_pickle(tmp_path / "cm.pkl")
+    cm = ConfusionMatrix.read_pickle(tmp_path / "cm.pkl")
+    assert_that(cm.pr_curve.auc).is_close_to(pr_auc, TOL)
+    assert_that(cm.roc_curve.auc).is_close_to(roc_auc, TOL)

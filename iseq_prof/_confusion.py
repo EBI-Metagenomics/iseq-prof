@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pickle
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Union
 
 import numba
 from numpy import asarray, empty, linspace, searchsorted, trapz
@@ -66,13 +66,13 @@ class ConfusionMatrix:
         ins_pos = searchsorted(true_samples, sorted_samples)
         set_tp_fp(self._TP, self._FP, ins_pos, true_samples, sorted_samples)
 
-    def write_pickle(self, filepath: Path):
-        with open(filepath, "wb") as file:
+    def write_pickle(self, filepath: Union[str, Path]):
+        with open(Path(filepath), "wb") as file:
             pickle.dump(self, file)
 
     @staticmethod
-    def read_pickle(filepath: Path):
-        with open(filepath, "rb") as file:
+    def read_pickle(filepath: Union[str, Path]):
+        with open(Path(filepath), "rb") as file:
             return pickle.load(file)
 
     @property
