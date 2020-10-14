@@ -41,6 +41,19 @@ class SampleType(Enum):
     PROF = 2
     TARGET = 3
 
+    @staticmethod
+    def from_name(name: str) -> SampleType:
+        if name.lower() == "prof_target":
+            return SampleType.PROF_TARGET
+
+        if name.lower() == "prof":
+            return SampleType.PROF
+
+        if name.lower() == "target":
+            return SampleType.TARGET
+
+        raise ValueError(f"Unkown name {name}.")
+
 
 class MetaSolutSpaceType(ABCMeta):
     def __iter__(self):
@@ -53,6 +66,24 @@ class MetaSolutSpaceType(ABCMeta):
 class SolutSpaceType(metaclass=MetaSolutSpaceType):
     sample_type: SampleType
     drop_duplicates: bool
+
+    @classmethod
+    def from_string(cls, string: str):
+        name, _, suffix = string.partition(".")
+        if suffix == "drop_dupl":
+            drop = True
+        elif suffix == "keep_dupl":
+            drop = False
+
+        return cls(SampleType.from_name(name), drop_duplicates=drop)
+
+    def __str__(self) -> str:
+        name = self.sample_type.name.lower()
+        if self.drop_duplicates:
+            suffix = "drop_dupl"
+        else:
+            suffix = "keep_dupl"
+        return f"{name}.{suffix}"
 
 
 class SolutSpace:
