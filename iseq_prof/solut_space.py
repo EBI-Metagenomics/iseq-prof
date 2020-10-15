@@ -118,11 +118,11 @@ class DB:
                 thash = self.add_target(target)
                 yield Sample(phash, thash)
 
-    def get_profile(self, key: int) -> str:
-        return self._profiles[key]
+    def get_profile(self, sample: Sample) -> str:
+        return self._profiles[sample.profile_hash]
 
-    def get_target(self, key: int) -> str:
-        return self._targets[key]
+    def get_target(self, sample: Sample) -> str:
+        return self._targets[sample.target_hash]
 
 
 class SolutSpace:
@@ -141,6 +141,12 @@ class SolutSpace:
         self._sample_space: Set[Sample] = samples
         self._true_samples: Set[Sample] = true_samples
         self._hits: Dict[Sample, float] = hits
+
+    def profile(self, sample: Sample) -> str:
+        return self._db.get_profile(sample)
+
+    def target(self, sample: Sample) -> str:
+        return self._db.get_target(sample)
 
     @property
     def _sorted_hits(self):
