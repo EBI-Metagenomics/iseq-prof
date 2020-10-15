@@ -105,22 +105,23 @@ class ProfAcc:
         return self._accession
 
     def confusion_matrix(self, space_type: SolutSpaceType) -> ConfusionMatrix:
+        solut_space = self._fetch_solut_space()
         (
             sample_space,
             true_samples,
-            ordered_sample_hits,
-        ) = self._fetch_solut_space()._get_samples(space_type)
+            hits,
+        ) = solut_space._get_samples(space_type)
 
         sample_space_id = {s: i for i, s in enumerate(sample_space)}
         true_sample_ids = [sample_space_id[k] for k in true_samples]
 
         P = len(true_sample_ids)
         N = len(sample_space_id) - P
-        sorted_samples = zeros(len(ordered_sample_hits), int)
-        sample_scores = full(len(ordered_sample_hits), inf)
-        for i, sample in enumerate(ordered_sample_hits):
+        sorted_samples = zeros(len(hits), int)
+        sample_scores = full(len(hits), inf)
+        for i, sample in enumerate(hits):
             sorted_samples[i] = sample_space_id[sample]
-            sample_scores[i] = sample.score
+            sample_scores[i] = solut_space.hit_evalue(sample)
 
         return ConfusionMatrix(true_sample_ids, N, sorted_samples, sample_scores)
 
