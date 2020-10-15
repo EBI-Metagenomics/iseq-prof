@@ -142,6 +142,24 @@ class SolutSpace:
         self._true_samples: Set[Sample] = true_samples
         self._hits: Dict[Sample, float] = hits
 
+        # self._db = DB()
+        # hits = self._gff_to_hits(gff)
+
+        # # samples: Set[Sample] = self._initial_solution_space(hmmer_file, cds_nucl_file)
+        # true_samples = set(self._domtblout_to_samples(domtblout_file))
+        # samples = true_samples | set(hits.keys())
+        # self._space_size = set(s.profile_hash)
+        # # samples |= true_samples
+        # # samples = samples.union(hits.keys())
+
+        # # self._sample_space: Set[Sample] = samples
+        # self._true_samples: Set[Sample] = true_samples
+        # self._hits: Dict[Sample, float] = hits
+
+    @property
+    def size(self) -> int:
+        return len(self._sample_space)
+
     def profile(self, sample: Sample) -> str:
         return self._db.get_profile(sample)
 

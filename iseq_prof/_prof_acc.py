@@ -95,6 +95,7 @@ class ProfAcc:
             self._solut_space = SolutSpace(
                 self._gff, self._hmmer_file, self._cds_nucl_file, self._domtblout_file
             )
+            return self._solut_space
         return self._solut_space
 
     def __repr__(self) -> str:
