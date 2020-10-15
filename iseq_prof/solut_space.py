@@ -111,13 +111,6 @@ class DB:
         thash = self.add_target(target)
         return Sample(phash, thash, idx)
 
-    def cross_create_samples(self, profiles: Iterable[str], targets: Iterable[str]):
-        for profile in profiles:
-            phash = self.add_profile(profile)
-            for target in targets:
-                thash = self.add_target(target)
-                yield Sample(phash, thash)
-
     def get_profile(self, sample: Sample) -> str:
         return self._profiles[sample.profile_hash]
 
@@ -129,36 +122,34 @@ class SolutSpace:
     def __init__(
         self, gff: GFF, hmmer_file: Path, cds_nucl_file: Path, domtblout_file: Path
     ):
-
         self._db = DB()
         hits = self._gff_to_hits(gff)
 
-        samples: Set[Sample] = self._initial_solution_space(hmmer_file, cds_nucl_file)
-        true_samples = set(self._domtblout_to_samples(domtblout_file))
-        samples |= true_samples
-        samples = samples.union(hits.keys())
+        # samples: Set[Sample] = self._initial_solution_space(hmmer_file, cds_nucl_file)
 
-        self._sample_space: Set[Sample] = samples
+        nprofiles = hmmer_reader.fetch_metadata(hmmer_file)["ACC"].shape[0]
+        with open_fasta(cds_nucl_file) as file:
+            ntargets = len(set(tgt.id.partition("|")[0] for tgt in file))
+
+        true_samples = set(self._domtblout_to_samples(domtblout_file))
+
+        samples = true_samples | set(hits.keys())
+        self._nduplicates = sum(s.idx > 0 for s in samples)
+        self._space_size = nprofiles * ntargets + self._nduplicates
+        # samples |= true_samples
+        # samples = samples.union(hits.keys())
+
+        # self._sample_space: Set[Sample] = samples
         self._true_samples: Set[Sample] = true_samples
         self._hits: Dict[Sample, float] = hits
 
-        # self._db = DB()
-        # hits = self._gff_to_hits(gff)
-
-        # # samples: Set[Sample] = self._initial_solution_space(hmmer_file, cds_nucl_file)
-        # true_samples = set(self._domtblout_to_samples(domtblout_file))
-        # samples = true_samples | set(hits.keys())
-        # self._space_size = set(s.profile_hash)
-        # # samples |= true_samples
-        # # samples = samples.union(hits.keys())
-
-        # # self._sample_space: Set[Sample] = samples
-        # self._true_samples: Set[Sample] = true_samples
-        # self._hits: Dict[Sample, float] = hits
+    @property
+    def nduplicates(self) -> int:
+        return self._nduplicates
 
     @property
     def size(self) -> int:
-        return len(self._sample_space)
+        return self._space_size
 
     def profile(self, sample: Sample) -> str:
         return self._db.get_profile(sample)
@@ -193,12 +184,12 @@ class SolutSpace:
         del hitnum
         return samples
 
-    def _initial_solution_space(self, hmmer_file, target_file) -> Set[Sample]:
-        profiles = hmmer_reader.fetch_metadata(hmmer_file)["ACC"].values
-        with open_fasta(target_file) as file:
-            targets = [tgt.id.partition("|")[0] for tgt in file]
-        samples = set(self._db.cross_create_samples(profiles, targets))
-        return samples
+    # def _initial_solution_space(self, hmmer_file, target_file) -> Set[Sample]:
+    #     profiles = hmmer_reader.fetch_metadata(hmmer_file)["ACC"].values
+    #     with open_fasta(target_file) as file:
+    #         targets = [tgt.id.partition("|")[0] for tgt in file]
+    #     samples = set(self._db.cross_create_samples(profiles, targets))
+    #     return samples
 
     def _domtblout_to_samples(self, domtblout_file) -> List[Sample]:
         samples = []
@@ -219,38 +210,39 @@ class SolutSpace:
         del hitnum
         return samples
 
-    def samples(self, space_type: SolutSpaceType) -> Set[Sample]:
-        return self._get_samples(space_type)[0]
+    # def samples(self, space_type: SolutSpaceType) -> Set[Sample]:
+    #     return self._get_samples(space_type)[0]
 
     def true_sample_space(self, space_type: SolutSpaceType) -> Set[Sample]:
         return self._get_samples(space_type)[1]
 
     def _get_samples(
         self, space_type: SolutSpaceType
-    ) -> Tuple[Set[Sample], Set[Sample], List[Sample]]:
+    ) -> Tuple[int, Set[Sample], List[Sample]]:
         if space_type.sample_type == SampleType.PROF_TARGET:
-            sample_space, true_samples, ordered_sample_hits = self._prof_target_space()
+            space_size, true_samples, ordered_sample_hits = self._prof_target_space()
         elif space_type.sample_type == SampleType.PROF:
-            sample_space, true_samples, ordered_sample_hits = self._prof_space()
+            space_size, true_samples, ordered_sample_hits = self._prof_space()
         else:
             assert space_type.sample_type == SampleType.TARGET
-            sample_space, true_samples, ordered_sample_hits = self._target_space()
+            space_size, true_samples, ordered_sample_hits = self._target_space()
 
         if space_type.drop_duplicates:
-            sample_space = set(s for s in sample_space if s.idx == 0)
             true_samples = set(s for s in true_samples if s.idx == 0)
             ordered_sample_hits = [s for s in ordered_sample_hits if s.idx == 0]
+            space_size = len(true_samples | ordered_sample_hits)
 
-        return sample_space, true_samples, ordered_sample_hits
+        return space_size, true_samples, ordered_sample_hits
 
     def _prof_target_space(self):
-        return self._sample_space, self._true_samples, self._sorted_hits
+        return self._space_size, self._true_samples, self._sorted_hits
 
     def _prof_space(self):
-        sample_space = set()
+        # sample_space = set()
         for k, n in prof_count(self._sample_space).items():
             for i in range(n):
-                sample_space.add(self._db.create_sample(k, "", i))
+                self._db.create_sample(k, "", i)
+                # sample_space.add(self._db.create_sample(k, "", i))
 
         true_samples = self._get_true_samples(SampleType.PROF)
 
@@ -261,13 +253,18 @@ class SolutSpace:
             count[acc] = count.get(acc, -1) + 1
             ordered_sample_hits.append(self._db.create_sample(acc, "", count[acc]))
 
-        return sample_space, true_samples, ordered_sample_hits
+        return (
+            len(true_samples | ordered_sample_hits),
+            true_samples,
+            ordered_sample_hits,
+        )
 
     def _target_space(self):
-        sample_space = set()
+        # sample_space = set()
         for k, n in target_count(self._sample_space).items():
             for i in range(n):
-                sample_space.add(self._db.create_sample("", k, i))
+                self._db.create_sample("", k, i)
+                # sample_space.add(self._db.create_sample("", k, i))
 
         true_samples = self._get_true_samples(SampleType.TARGET)
 
@@ -278,7 +275,11 @@ class SolutSpace:
             count[tgt] = count.get(tgt, -1) + 1
             ordered_sample_hits.append(self._db.create_sample("", tgt, count[tgt]))
 
-        return sample_space, true_samples, ordered_sample_hits
+        return (
+            len(true_samples | ordered_sample_hits),
+            true_samples,
+            ordered_sample_hits,
+        )
 
     def _get_true_samples(self, solut_space: SampleType):
         if solut_space == SampleType.PROF_TARGET:

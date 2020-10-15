@@ -78,9 +78,10 @@ def test_prof_acc(tmp_path):
 
     ss = pa._fetch_solut_space()
     assert_that(ss.size).is_equal_to(243)
-    n = len(ss._db._profiles) * len(ss._db._targets)
+    # n = len(ss._db._profiles) * len(ss._db._targets)
     # It has duplicates
-    assert_that(n).is_equal_to(240)
+    assert_that(ss.nduplicates).is_equal_to(3)
+    # assert_that(n).is_equal_to(240)
 
 
 def experiment_folder(root: Path) -> Path:
