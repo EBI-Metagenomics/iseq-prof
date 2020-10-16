@@ -44,6 +44,8 @@ def test_prof_acc(tmp_path):
     assert_that(str(pa.accession)).is_equal_to("<AE014075.1>")
 
     cm = pa.confusion_matrix(SolutSpaceType(SampleType.PROF_TARGET, False))
+    assert_that(cm.N).is_equal_to(227)
+    assert_that(cm.P).is_equal_to(16)
     tpr = [
         0.0,
         0.0625,
@@ -82,6 +84,120 @@ def test_prof_acc(tmp_path):
     # It has duplicates
     assert_that(ss.nduplicates).is_equal_to(3)
     # assert_that(n).is_equal_to(240)
+
+    cm = pa.confusion_matrix(SolutSpaceType(SampleType.PROF_TARGET, True))
+    assert_that(cm.N).is_equal_to(226)
+    assert_that(cm.P).is_equal_to(14)
+    tpr = [
+        0.0,
+        0.07142857142857142,
+        0.14285714285714285,
+        0.21428571428571427,
+        0.2857142857142857,
+        0.35714285714285715,
+        0.42857142857142855,
+        0.5,
+        0.5714285714285714,
+        0.6428571428571429,
+        0.7142857142857143,
+        0.7857142857142857,
+        0.8571428571428571,
+        0.9285714285714286,
+        1.0,
+        1.0,
+    ]
+    assert_allclose(cm.tpr[: len(tpr)], tpr)
+    fpr = [0.0, 0.0, 0.0, 0.0, 0.0, 0.004424778761061954]
+    assert_allclose(cm.fpr[[0, 5, 10, 13, -2, -1]], fpr)
+
+    cm = pa.confusion_matrix(SolutSpaceType(SampleType.PROF, False))
+    assert_that(cm.N).is_equal_to(227)
+    assert_that(cm.P).is_equal_to(16)
+    tpr = [
+        0.0,
+        0.0625,
+        0.125,
+        0.1875,
+        0.25,
+        0.3125,
+        0.375,
+        0.4375,
+        0.5,
+        0.5625,
+        0.625,
+        0.6875,
+        0.75,
+        0.8125,
+        0.875,
+        0.9375,
+        1.0,
+        1.0,
+        1.0,
+    ]
+    assert_allclose(cm.tpr[: len(tpr)], tpr)
+    fpr = [0.0, 0.0, 0.0, 0.0, 0.004405286343612369, 0.008810572687224627]
+    assert_allclose(cm.fpr[[0, 5, 10, 13, -2, -1]], fpr)
+
+    # breakpoint()
+    # cm = pa.confusion_matrix(SolutSpaceType(SampleType.PROF, True))
+    # assert_that(cm.N).is_equal_to(10)
+    # assert_that(cm.P).is_equal_to(14)
+    # tpr = [
+    #     0.0,
+    #     0.07142857142857142,
+    #     0.14285714285714285,
+    #     0.21428571428571427,
+    #     0.2857142857142857,
+    #     0.35714285714285715,
+    #     0.42857142857142855,
+    #     0.5,
+    #     0.5714285714285714,
+    #     0.6428571428571429,
+    #     0.7142857142857143,
+    #     0.7857142857142857,
+    #     0.8571428571428571,
+    #     0.9285714285714286,
+    #     1.0,
+    # ]
+    # assert_allclose(cm.tpr[: len(tpr)], tpr)
+    # fpr = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    # assert_allclose(cm.fpr[[0, 5, 10, 13, -2, -1]], fpr)
+
+    # cm = pa.confusion_matrix(SolutSpaceType(SampleType.TARGET, False))
+    # assert_that(cm.N).is_equal_to(227)
+    # assert_that(cm.P).is_equal_to(16)
+    # tpr = [
+    #     0.0,
+    #     0.0625,
+    #     0.125,
+    #     0.1875,
+    #     0.25,
+    #     0.3125,
+    #     0.375,
+    #     0.4375,
+    #     0.5,
+    #     0.5625,
+    #     0.625,
+    #     0.6875,
+    #     0.75,
+    #     0.8125,
+    #     0.875,
+    #     0.9375,
+    #     1.0,
+    #     1.0,
+    #     1.0,
+    # ]
+    # assert_allclose(cm.tpr[: len(tpr)], tpr)
+    # fpr = [0.0, 0.0, 0.0, 0.0, 0.004405286343612369, 0.008810572687224627]
+    # assert_allclose(cm.fpr[[0, 5, 10, 13, -2, -1]], fpr)
+
+    # cm = pa.confusion_matrix(SolutSpaceType(SampleType.TARGET, True))
+    # assert_that(cm.N).is_equal_to(2)
+    # assert_that(cm.P).is_equal_to(8)
+    # tpr = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0, 1.0]
+    # assert_allclose(cm.tpr[: len(tpr)], tpr)
+    # fpr = [0.0, 0.0, 0.0, 0.5]
+    # assert_allclose(cm.fpr[[0, 5, -2, -1]], fpr)
 
 
 def experiment_folder(root: Path) -> Path:

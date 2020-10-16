@@ -136,12 +136,22 @@ class SolutSpace:
         samples = true_samples | set(hits.keys())
         self._nduplicates = sum(s.idx > 0 for s in samples)
         self._space_size = nprofiles * ntargets + self._nduplicates
+        self._nprofiles = nprofiles
+        self._ntargets = ntargets
         # samples |= true_samples
         # samples = samples.union(hits.keys())
 
         # self._sample_space: Set[Sample] = samples
         self._true_samples: Set[Sample] = true_samples
         self._hits: Dict[Sample, float] = hits
+
+    @property
+    def nprofiles(self) -> int:
+        return self._nprofiles
+
+    @property
+    def ntargets(self) -> int:
+        return self._ntargets
 
     @property
     def nduplicates(self) -> int:
@@ -220,63 +230,82 @@ class SolutSpace:
         self, space_type: SolutSpaceType
     ) -> Tuple[int, Set[Sample], List[Sample]]:
         if space_type.sample_type == SampleType.PROF_TARGET:
-            space_size, true_samples, ordered_sample_hits = self._prof_target_space()
+            (
+                space_size,
+                ndup,
+                true_samples,
+                ordered_sample_hits,
+            ) = self._prof_target_space()
         elif space_type.sample_type == SampleType.PROF:
-            space_size, true_samples, ordered_sample_hits = self._prof_space()
+            space_size, ndup, true_samples, ordered_sample_hits = self._prof_space()
         else:
             assert space_type.sample_type == SampleType.TARGET
-            space_size, true_samples, ordered_sample_hits = self._target_space()
+            space_size, ndup, true_samples, ordered_sample_hits = self._target_space()
 
         if space_type.drop_duplicates:
+            n = len(true_samples | set(ordered_sample_hits))
             true_samples = set(s for s in true_samples if s.idx == 0)
             ordered_sample_hits = [s for s in ordered_sample_hits if s.idx == 0]
-            space_size = len(true_samples | ordered_sample_hits)
+            space_size -= n - len(true_samples | set(ordered_sample_hits))
 
         return space_size, true_samples, ordered_sample_hits
 
     def _prof_target_space(self):
-        return self._space_size, self._true_samples, self._sorted_hits
+        return (
+            self._space_size,
+            self._nduplicates,
+            self._true_samples,
+            self._sorted_hits,
+        )
 
     def _prof_space(self):
         # sample_space = set()
-        for k, n in prof_count(self._sample_space).items():
-            for i in range(n):
-                self._db.create_sample(k, "", i)
-                # sample_space.add(self._db.create_sample(k, "", i))
+        # for k, n in prof_count(self._sample_space).items():
+        #     for i in range(n):
+        #         self._db.create_sample(k, "", i)
+        # sample_space.add(self._db.create_sample(k, "", i))
 
+        ndup = self.nprofiles * (self.ntargets - 1)
         true_samples = self._get_true_samples(SampleType.PROF)
 
         ordered_sample_hits = []
         count: Dict[str, int] = {}
         for sample in self._sorted_hits:
-            acc = sample.profile
+            acc = self._db.get_profile(sample)
             count[acc] = count.get(acc, -1) + 1
             ordered_sample_hits.append(self._db.create_sample(acc, "", count[acc]))
 
+        ndup += sum(s.idx > 0 for s in (true_samples | set(ordered_sample_hits)))
+
         return (
-            len(true_samples | ordered_sample_hits),
+            self._space_size,
+            ndup,
             true_samples,
             ordered_sample_hits,
         )
 
     def _target_space(self):
         # sample_space = set()
-        for k, n in target_count(self._sample_space).items():
-            for i in range(n):
-                self._db.create_sample("", k, i)
-                # sample_space.add(self._db.create_sample("", k, i))
+        # for k, n in target_count(self._sample_space).items():
+        #     for i in range(n):
+        #         self._db.create_sample("", k, i)
+        #         # sample_space.add(self._db.create_sample("", k, i))
 
         true_samples = self._get_true_samples(SampleType.TARGET)
 
         ordered_sample_hits = []
+        ndup = 0
         count: Dict[str, int] = {}
         for sample in self._sorted_hits:
             tgt = sample.target
             count[tgt] = count.get(tgt, -1) + 1
+            if count[tgt] > 0:
+                ndup += 1
             ordered_sample_hits.append(self._db.create_sample("", tgt, count[tgt]))
 
         return (
-            len(true_samples | ordered_sample_hits),
+            len(true_samples | set(ordered_sample_hits)),
+            ndup,
             true_samples,
             ordered_sample_hits,
         )
@@ -287,30 +316,28 @@ class SolutSpace:
 
         elif solut_space == SampleType.PROF:
             true_samples = set()
-            for k, n in prof_count(self._true_samples).items():
+            for k, n in self._prof_count(self._true_samples).items():
                 for i in range(n):
                     true_samples.add(self._db.create_sample(k, "", i))
             return true_samples
 
         assert solut_space == SampleType.TARGET
         true_samples = set()
-        for k, n in target_count(self._true_samples).items():
+        for k, n in self._target_count(self._true_samples).items():
             for i in range(n):
                 true_samples.add(self._db.create_sample("", k, i))
         return true_samples
 
+    def _prof_count(self, sample_space: Iterable[Sample]) -> Dict[str, int]:
+        prof_count: Dict[str, int] = {}
+        for sample in sample_space:
+            acc = self._db.get_profile(sample)
+            prof_count[acc] = prof_count.get(acc, 0) + 1
+        return prof_count
 
-def prof_count(sample_space: Iterable[Sample]) -> Dict[str, int]:
-    prof_count: Dict[str, int] = {}
-    for sample in sample_space:
-        acc = sample.profile
-        prof_count[acc] = prof_count.get(acc, 0) + 1
-    return prof_count
-
-
-def target_count(sample_space: Iterable[Sample]) -> Dict[str, int]:
-    target_count: Dict[str, int] = {}
-    for sample in sample_space:
-        acc = sample.target
-        target_count[acc] = target_count.get(acc, 0) + 1
-    return target_count
+    def _target_count(self, sample_space: Iterable[Sample]) -> Dict[str, int]:
+        target_count: Dict[str, int] = {}
+        for sample in sample_space:
+            acc = self._db.get_target(sample)
+            target_count[acc] = target_count.get(acc, 0) + 1
+        return target_count

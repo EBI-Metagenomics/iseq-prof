@@ -17,7 +17,7 @@ from ._confusion import ConfusionMatrix
 from ._file import assert_file_exist
 from ._gff import read_gff
 from ._tables import domtbl_as_dataframe
-from .solut_space import SolutSpace, SolutSpaceType
+from .solut_space import SampleType, SolutSpace, SolutSpaceType
 
 __all__ = ["ProfAcc", "ProfAccFiles"]
 
@@ -119,10 +119,14 @@ class ProfAcc:
         P = len(true_sample_ids)
         N = space_size - P
         sorted_samples = zeros(len(hits), int)
-        sample_scores = full(len(hits), inf)
         for i, sample in enumerate(hits):
             sorted_samples[i] = hash(sample)
-            sample_scores[i] = solut_space.hit_evalue(sample)
+        if space_type.sample_type == SampleType.PROF_TARGET:
+            sample_scores = full(len(hits), inf)
+            for i, sample in enumerate(hits):
+                sample_scores[i] = solut_space.hit_evalue(sample)
+        else:
+            sample_scores = None
 
         return ConfusionMatrix(true_sample_ids, N, sorted_samples, sample_scores)
 
