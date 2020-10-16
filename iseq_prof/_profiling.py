@@ -5,11 +5,14 @@ from typing import List, Optional, Set, Union
 
 import iseq
 from fasta_reader import open_fasta
-from numpy import full, inf, zeros
 
-from ._confusion import ConfusionMatrix
+# from ._confusion import ConfusionMatrix
 from ._prof_acc import ProfAcc, ProfAccFiles
-from .overall_solut_space import OSolutSpace
+
+# from numpy import full, inf, zeros
+
+
+# from .overall_solut_space import OSolutSpace
 
 __all__ = ["Profiling"]
 
@@ -21,7 +24,7 @@ class Profiling:
         self._hmmdb = root / "db.hmm"
         self._params = root / "params.txt"
         # self._cc_pa_cache: Dict[str, ProfAcc] = {}
-        self._oss: Optional[OSolutSpace] = None
+        # self._oss: Optional[OSolutSpace] = None
         assert self._hmmdb.exists()
         assert self._params.exists()
 
@@ -101,37 +104,37 @@ class Profiling:
     ) -> ProfAcc:
         return ProfAcc(self._root / accession, low_memory, files)
 
-    def confusion_matrix(self, accessions: List[str], profile: str) -> ConfusionMatrix:
-        if self._oss is None:
-            oss = OSolutSpace()
-            for acc in accessions:
-                # pa = self._cc_pa_cache.get(acc, None)
-                # if pa is None:
-                pa = self.read_accession(acc)
-                # self._cc_pa_cache[acc] = pa
-                oss.add_organism(acc, pa._fetch_solut_space())
-            self._oss = oss
-        else:
-            oss = self._oss
+    # def confusion_matrix(self, accessions: List[str], profile: str) -> ConfusionMatrix:
+    #     if self._oss is None:
+    #         oss = OSolutSpace()
+    #         for acc in accessions:
+    #             # pa = self._cc_pa_cache.get(acc, None)
+    #             # if pa is None:
+    #             pa = self.read_accession(acc)
+    #             # self._cc_pa_cache[acc] = pa
+    #             oss.add_organism(acc, pa._fetch_solut_space())
+    #         self._oss = oss
+    #     else:
+    #         oss = self._oss
 
-        (
-            sample_space,
-            true_samples,
-            hits,
-        ) = oss.per_profile(profile)
+    #     (
+    #         sample_space,
+    #         true_samples,
+    #         hits,
+    #     ) = oss.per_profile(profile)
 
-        sample_space_id = {s: i for i, s in enumerate(sample_space)}
-        true_sample_ids = [sample_space_id[k] for k in true_samples]
+    #     sample_space_id = {s: i for i, s in enumerate(sample_space)}
+    #     true_sample_ids = [sample_space_id[k] for k in true_samples]
 
-        P = len(true_sample_ids)
-        N = len(sample_space_id) - P
-        sorted_samples = zeros(len(hits), int)
-        sample_scores = full(len(hits), inf)
-        for i, sample in enumerate(hits):
-            sorted_samples[i] = sample_space_id[sample]
-            sample_scores[i] = oss.hit_evalue(sample)
+    #     P = len(true_sample_ids)
+    #     N = len(sample_space_id) - P
+    #     sorted_samples = zeros(len(hits), int)
+    #     sample_scores = full(len(hits), inf)
+    #     for i, sample in enumerate(hits):
+    #         sorted_samples[i] = sample_space_id[sample]
+    #         sample_scores[i] = oss.hit_evalue(sample)
 
-        return ConfusionMatrix(true_sample_ids, N, sorted_samples, sample_scores)
+    #     return ConfusionMatrix(true_sample_ids, N, sorted_samples, sample_scores)
 
 
 def merge_files(prefix: str, ext: str, acc_path: Path, chunks: List[int], skip: bool):

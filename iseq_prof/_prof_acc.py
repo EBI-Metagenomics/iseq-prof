@@ -17,7 +17,7 @@ from ._confusion import ConfusionMatrix
 from ._file import assert_file_exist
 from ._gff import read_gff
 from ._tables import domtbl_as_dataframe
-from .solut_space import SampleType, SolutSpace, SolutSpaceType
+from .solut_space import SolutSpace
 
 __all__ = ["ProfAcc", "ProfAccFiles"]
 
@@ -105,43 +105,37 @@ class ProfAcc:
     def accession(self) -> Accession:
         return self._accession
 
-    def confusion_matrix(self, space_type: SolutSpaceType) -> ConfusionMatrix:
+    def confusion_matrix(self, drop_duplicates=False) -> ConfusionMatrix:
         solut_space = self._fetch_solut_space()
-        (
-            space_size,
-            true_samples,
-            hits,
-        ) = solut_space._get_samples(space_type)
 
-        # sample_space_id = {s: i for i, s in enumerate(sample_space)}
+        true_samples = solut_space.true_samples(drop_duplicates)
         true_sample_ids = [hash(k) for k in true_samples]
 
+        hits = solut_space.sorted_hits(drop_duplicates)
+
         P = len(true_sample_ids)
-        N = space_size - P
+        N = solut_space.space_size(drop_duplicates) - P
+
         sorted_samples = zeros(len(hits), int)
-        for i, sample in enumerate(hits):
-            sorted_samples[i] = hash(sample)
-        if space_type.sample_type == SampleType.PROF_TARGET:
-            sample_scores = full(len(hits), inf)
-            for i, sample in enumerate(hits):
-                sample_scores[i] = solut_space.hit_evalue(sample)
-        else:
-            sample_scores = None
+        sample_scores = full(len(hits), inf)
+        for i, hit in enumerate(hits):
+            sorted_samples[i] = hash(hit[0])
+            sample_scores[i] = hit[1]
 
         return ConfusionMatrix(true_sample_ids, N, sorted_samples, sample_scores)
 
-    def score(
-        self,
-        space_type: SolutSpaceType,
-        e_value: float,
-    ) -> Score:
-        cm = self.confusion_matrix(space_type)
-        i = cm.cutpoint(e_value)
-        sensitivity = cm.sensitivity[i]
-        specifity = cm.specifity[i]
-        roc_auc = cm.roc_curve.auc
-        pr_auc = cm.pr_curve.auc
-        return Score(sensitivity, specifity, roc_auc, pr_auc)
+    # def score(
+    #     self,
+    #     space_type: SolutSpaceType,
+    #     e_value: float,
+    # ) -> Score:
+    #     cm = self.confusion_matrix(space_type)
+    #     i = cm.cutpoint(e_value)
+    #     sensitivity = cm.sensitivity[i]
+    #     specifity = cm.specifity[i]
+    #     roc_auc = cm.roc_curve.auc
+    #     pr_auc = cm.pr_curve.auc
+    #     return Score(sensitivity, specifity, roc_auc, pr_auc)
 
     def true_table(self, evalue_col="domain.i_value") -> DataFrame:
         df = domtbl_as_dataframe(read_domtbl(self._domtblout_file))

@@ -2,18 +2,7 @@ import click
 import pandas as pd
 from tabulate import tabulate
 
-from ..solut_space import SampleType
-
-__all__ = ["get_solut_space", "show_true_table_profile", "show_hit_table_profile"]
-
-
-def get_solut_space(solut_space: str) -> SampleType:
-    space_types = {
-        "prof-target": SampleType.PROF_TARGET,
-        "prof": SampleType.PROF,
-        "target": SampleType.TARGET,
-    }
-    return space_types[solut_space]
+__all__ = ["show_true_table_profile", "show_hit_table_profile"]
 
 
 def show_true_table_profile(true_table: pd.DataFrame):

@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-from abc import ABCMeta
 from collections import defaultdict
-from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
-from typing import Dict, Iterable, List, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 import hmmer_reader
 from fasta_reader import open_fasta
 from hmmer import read_domtbl
 from iseq.gff import GFF
 
-__all__ = ["Sample", "SampleType", "SolutSpaceType", "SolutSpace"]
+__all__ = ["Sample", "SolutSpace"]
 
 
 class Sample:
@@ -37,56 +34,6 @@ class Sample:
             and self.target_hash == you.target_hash
             and self.idx == you.idx
         )
-
-
-class SampleType(Enum):
-    PROF_TARGET = 1
-    PROF = 2
-    TARGET = 3
-
-    @staticmethod
-    def from_name(name: str) -> SampleType:
-        if name.lower() == "prof_target":
-            return SampleType.PROF_TARGET
-
-        if name.lower() == "prof":
-            return SampleType.PROF
-
-        if name.lower() == "target":
-            return SampleType.TARGET
-
-        raise ValueError(f"Unkown name {name}.")
-
-
-class MetaSolutSpaceType(ABCMeta):
-    def __iter__(self):
-        for st in SampleType:
-            for b in [False, True]:
-                yield SolutSpaceType(st, b)
-
-
-@dataclass
-class SolutSpaceType(metaclass=MetaSolutSpaceType):
-    sample_type: SampleType
-    drop_duplicates: bool
-
-    @classmethod
-    def from_string(cls, string: str):
-        name, _, suffix = string.partition(".")
-        if suffix == "drop_dupl":
-            drop = True
-        elif suffix == "keep_dupl":
-            drop = False
-
-        return cls(SampleType.from_name(name), drop_duplicates=drop)
-
-    def __str__(self) -> str:
-        name = self.sample_type.name.lower()
-        if self.drop_duplicates:
-            suffix = "drop_dupl"
-        else:
-            suffix = "keep_dupl"
-        return f"{name}.{suffix}"
 
 
 class DB:
@@ -125,8 +72,6 @@ class SolutSpace:
         self._db = DB()
         hits = self._gff_to_hits(gff)
 
-        # samples: Set[Sample] = self._initial_solution_space(hmmer_file, cds_nucl_file)
-
         nprofiles = hmmer_reader.fetch_metadata(hmmer_file)["ACC"].shape[0]
         with open_fasta(cds_nucl_file) as file:
             ntargets = len(set(tgt.id.partition("|")[0] for tgt in file))
@@ -138,10 +83,7 @@ class SolutSpace:
         self._space_size = nprofiles * ntargets + self._nduplicates
         self._nprofiles = nprofiles
         self._ntargets = ntargets
-        # samples |= true_samples
-        # samples = samples.union(hits.keys())
 
-        # self._sample_space: Set[Sample] = samples
         self._true_samples: Set[Sample] = true_samples
         self._hits: Dict[Sample, float] = hits
 
@@ -157,8 +99,9 @@ class SolutSpace:
     def nduplicates(self) -> int:
         return self._nduplicates
 
-    @property
-    def size(self) -> int:
+    def space_size(self, drop_duplicates=False) -> int:
+        if drop_duplicates:
+            return self._space_size - self._nduplicates
         return self._space_size
 
     def profile(self, sample: Sample) -> str:
@@ -167,12 +110,25 @@ class SolutSpace:
     def target(self, sample: Sample) -> str:
         return self._db.get_target(sample)
 
-    @property
-    def _sorted_hits(self):
-        return [k for k, _ in sorted(self._hits.items(), key=lambda x: x[1])]
+    def true_samples(self, drop_duplicates=False) -> Set[Sample]:
+        if drop_duplicates:
+            return set(s for s in self._true_samples if s.idx == 0)
+        return self._true_samples
 
-    def hit_evalue(self, hit: Sample) -> float:
-        return self._hits[hit]
+    def sorted_hits(self, drop_duplicates=False) -> List[Tuple[Sample, float]]:
+        hits = self.hits(drop_duplicates)
+        return [(k, v) for k, v in sorted(hits.items(), key=lambda x: x[1])]
+
+    def hits(self, drop_duplicates=False) -> Dict[Sample, float]:
+        if not drop_duplicates:
+            return self._hits
+
+        hits: Dict[Sample, float] = {}
+        for sample, evalue in self._hits.items():
+            if sample.idx == 0:
+                hits[sample] = evalue
+
+        return hits
 
     def _gff_to_hits(self, gff: GFF) -> Dict[Sample, float]:
         samples: Dict[Sample, float] = {}
@@ -194,150 +150,19 @@ class SolutSpace:
         del hitnum
         return samples
 
-    # def _initial_solution_space(self, hmmer_file, target_file) -> Set[Sample]:
-    #     profiles = hmmer_reader.fetch_metadata(hmmer_file)["ACC"].values
-    #     with open_fasta(target_file) as file:
-    #         targets = [tgt.id.partition("|")[0] for tgt in file]
-    #     samples = set(self._db.cross_create_samples(profiles, targets))
-    #     return samples
-
     def _domtblout_to_samples(self, domtblout_file) -> List[Sample]:
         samples = []
         hitnum: Dict[int, int] = defaultdict(lambda: 0)
         for row in read_domtbl(domtblout_file):
             profile = row.target.accession
             target = row.query.name.partition("|")[0]
-            # evalue = float(row.domain.i_value)
 
             phash = self._db.add_profile(profile)
             thash = self._db.add_target(target)
 
             ikey = hash((phash, thash))
             samples.append(Sample(phash, thash, hitnum[ikey]))
-            # samples.append(Sample(phash, thash, hitnum[ikey], evalue))
             hitnum[ikey] += 1
 
         del hitnum
         return samples
-
-    # def samples(self, space_type: SolutSpaceType) -> Set[Sample]:
-    #     return self._get_samples(space_type)[0]
-
-    def true_sample_space(self, space_type: SolutSpaceType) -> Set[Sample]:
-        return self._get_samples(space_type)[1]
-
-    def _get_samples(
-        self, space_type: SolutSpaceType
-    ) -> Tuple[int, Set[Sample], List[Sample]]:
-        if space_type.sample_type == SampleType.PROF_TARGET:
-            (
-                space_size,
-                ndup,
-                true_samples,
-                ordered_sample_hits,
-            ) = self._prof_target_space()
-        elif space_type.sample_type == SampleType.PROF:
-            space_size, ndup, true_samples, ordered_sample_hits = self._prof_space()
-        else:
-            assert space_type.sample_type == SampleType.TARGET
-            space_size, ndup, true_samples, ordered_sample_hits = self._target_space()
-
-        if space_type.drop_duplicates:
-            n = len(true_samples | set(ordered_sample_hits))
-            true_samples = set(s for s in true_samples if s.idx == 0)
-            ordered_sample_hits = [s for s in ordered_sample_hits if s.idx == 0]
-            space_size -= n - len(true_samples | set(ordered_sample_hits))
-
-        return space_size, true_samples, ordered_sample_hits
-
-    def _prof_target_space(self):
-        return (
-            self._space_size,
-            self._nduplicates,
-            self._true_samples,
-            self._sorted_hits,
-        )
-
-    def _prof_space(self):
-        # sample_space = set()
-        # for k, n in prof_count(self._sample_space).items():
-        #     for i in range(n):
-        #         self._db.create_sample(k, "", i)
-        # sample_space.add(self._db.create_sample(k, "", i))
-
-        ndup = self.nprofiles * (self.ntargets - 1)
-        true_samples = self._get_true_samples(SampleType.PROF)
-
-        ordered_sample_hits = []
-        count: Dict[str, int] = {}
-        for sample in self._sorted_hits:
-            acc = self._db.get_profile(sample)
-            count[acc] = count.get(acc, -1) + 1
-            ordered_sample_hits.append(self._db.create_sample(acc, "", count[acc]))
-
-        ndup += sum(s.idx > 0 for s in (true_samples | set(ordered_sample_hits)))
-
-        return (
-            self._space_size,
-            ndup,
-            true_samples,
-            ordered_sample_hits,
-        )
-
-    def _target_space(self):
-        # sample_space = set()
-        # for k, n in target_count(self._sample_space).items():
-        #     for i in range(n):
-        #         self._db.create_sample("", k, i)
-        #         # sample_space.add(self._db.create_sample("", k, i))
-
-        true_samples = self._get_true_samples(SampleType.TARGET)
-
-        ordered_sample_hits = []
-        ndup = 0
-        count: Dict[str, int] = {}
-        for sample in self._sorted_hits:
-            tgt = sample.target
-            count[tgt] = count.get(tgt, -1) + 1
-            if count[tgt] > 0:
-                ndup += 1
-            ordered_sample_hits.append(self._db.create_sample("", tgt, count[tgt]))
-
-        return (
-            len(true_samples | set(ordered_sample_hits)),
-            ndup,
-            true_samples,
-            ordered_sample_hits,
-        )
-
-    def _get_true_samples(self, solut_space: SampleType):
-        if solut_space == SampleType.PROF_TARGET:
-            return self._true_samples
-
-        elif solut_space == SampleType.PROF:
-            true_samples = set()
-            for k, n in self._prof_count(self._true_samples).items():
-                for i in range(n):
-                    true_samples.add(self._db.create_sample(k, "", i))
-            return true_samples
-
-        assert solut_space == SampleType.TARGET
-        true_samples = set()
-        for k, n in self._target_count(self._true_samples).items():
-            for i in range(n):
-                true_samples.add(self._db.create_sample("", k, i))
-        return true_samples
-
-    def _prof_count(self, sample_space: Iterable[Sample]) -> Dict[str, int]:
-        prof_count: Dict[str, int] = {}
-        for sample in sample_space:
-            acc = self._db.get_profile(sample)
-            prof_count[acc] = prof_count.get(acc, 0) + 1
-        return prof_count
-
-    def _target_count(self, sample_space: Iterable[Sample]) -> Dict[str, int]:
-        target_count: Dict[str, int] = {}
-        for sample in sample_space:
-            acc = self._db.get_target(sample)
-            target_count[acc] = target_count.get(acc, 0) + 1
-        return target_count
