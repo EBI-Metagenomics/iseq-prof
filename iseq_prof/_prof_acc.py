@@ -92,9 +92,11 @@ class ProfAcc:
         if self._solut_space is None:
             if self._gff is None:
                 self._gff = read_gff(self._output_file)
-            self._solut_space = SolutSpace(
-                self._gff, self._hmmer_file, self._cds_nucl_file, self._domtblout_file
-            )
+
+            hmmer = self._hmmer_file
+            nucl = self._cds_nucl_file
+            domtblout = self._domtblout_file
+            self._solut_space = SolutSpace(self._gff, hmmer, nucl, domtblout)
             return self._solut_space
         return self._solut_space
 

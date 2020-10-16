@@ -2,31 +2,25 @@
 
 # from typing import Dict, Iterable, Set
 
-# from .solut_space import Sample, SampleType, SolutSpace, SolutSpaceType
+# from .solut_space import Sample, SolutSpace
 
 
 # class OSample:
-#     __slots__ = ["organism_hash", "profile_hash", "target_hash"]
+#     __slots__ = ["organism_hash", "sample"]
 
 #     def __init__(
 #         self,
 #         organism_hash: int,
-#         profile_hash: int,
-#         target_hash: int,
+#         sample: Sample,
 #     ):
 #         self.organism_hash = organism_hash
-#         self.profile_hash = profile_hash
-#         self.target_hash = target_hash
+#         self.sample = sample
 
 #     def __hash__(self) -> int:
-#         return hash((self.organism_hash, self.profile_hash, self.target_hash))
+#         return hash((self.organism_hash, self.sample))
 
 #     def __eq__(self, you: OSample):  # type: ignore[override]
-#         return (
-#             self.organism_hash == you.organism_hash
-#             and self.profile_hash == you.profile_hash
-#             and self.target_hash == you.target_hash
-#         )
+#         return self.organism_hash == you.organism_hash and self.sample == you.sample
 
 
 # class DB:

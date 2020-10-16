@@ -12,7 +12,7 @@ from ._prof_acc import ProfAcc, ProfAccFiles
 # from numpy import full, inf, zeros
 
 
-# from .overall_solut_space import OSolutSpace
+# from .osolut_space import OSolutSpace
 
 __all__ = ["Profiling"]
 
@@ -108,10 +108,7 @@ class Profiling:
     #     if self._oss is None:
     #         oss = OSolutSpace()
     #         for acc in accessions:
-    #             # pa = self._cc_pa_cache.get(acc, None)
-    #             # if pa is None:
     #             pa = self.read_accession(acc)
-    #             # self._cc_pa_cache[acc] = pa
     #             oss.add_organism(acc, pa._fetch_solut_space())
     #         self._oss = oss
     #     else:

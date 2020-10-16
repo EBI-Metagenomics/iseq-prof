@@ -9,67 +9,50 @@ from fasta_reader import open_fasta
 from hmmer import read_domtbl
 from iseq.gff import GFF
 
+from ._strdb import StrDB
+
 __all__ = ["Sample", "SolutSpace"]
 
 
 class Sample:
-    __slots__ = ["profile_hash", "target_hash", "idx"]
+    __slots__ = ["_strdb", "_profile_key", "_target_key", "idx"]
 
     def __init__(
         self,
-        profile_hash: int,
-        target_hash: int,
+        strdb: StrDB,
+        profile: str,
+        target: str,
         idx: int = 0,
     ):
-        self.profile_hash = profile_hash
-        self.target_hash = target_hash
+        self._strdb = strdb
+        self._profile_key = strdb.add(profile)
+        self._target_key = strdb.add(target)
         self.idx = idx
 
+    @property
+    def profile(self) -> str:
+        return self._strdb.get(self._profile_key)
+
+    @property
+    def target(self) -> str:
+        return self._strdb.get(self._target_key)
+
     def __hash__(self) -> int:
-        return hash((self.profile_hash, self.target_hash, self.idx))
+        return hash((self._profile_key, self._target_key, self.idx))
 
     def __eq__(self, you: Sample):  # type: ignore[override]
         return (
-            self.profile_hash == you.profile_hash
-            and self.target_hash == you.target_hash
+            self._profile_key == you._profile_key
+            and self._target_key == you._target_key
             and self.idx == you.idx
         )
-
-
-class DB:
-    __slots__ = ["_profiles", "_targets"]
-
-    def __init__(self):
-        self._profiles: Dict[int, str] = {}
-        self._targets: Dict[int, str] = {}
-
-    def add_profile(self, profile: str) -> int:
-        key = hash(profile)
-        self._profiles[key] = profile
-        return key
-
-    def add_target(self, target: str) -> int:
-        key = hash(target)
-        self._targets[key] = target
-        return key
-
-    def create_sample(self, profile: str, target: str, idx: int = 0) -> Sample:
-        phash = self.add_profile(profile)
-        thash = self.add_target(target)
-        return Sample(phash, thash, idx)
-
-    def get_profile(self, sample: Sample) -> str:
-        return self._profiles[sample.profile_hash]
-
-    def get_target(self, sample: Sample) -> str:
-        return self._targets[sample.target_hash]
 
 
 class SolutSpace:
     def __init__(
         self, gff: GFF, hmmer_file: Path, cds_nucl_file: Path, domtblout_file: Path
     ):
-        self._db = DB()
+        self._strdb = StrDB()
         hits = self._gff_to_hits(gff)
 
         nprofiles = hmmer_reader.fetch_metadata(hmmer_file)["ACC"].shape[0]
@@ -104,12 +87,6 @@ class SolutSpace:
             return self._space_size - self._nduplicates
         return self._space_size
 
-    def profile(self, sample: Sample) -> str:
-        return self._db.get_profile(sample)
-
-    def target(self, sample: Sample) -> str:
-        return self._db.get_target(sample)
-
     def true_samples(self, drop_duplicates=False) -> Set[Sample]:
         if drop_duplicates:
             return set(s for s in self._true_samples if s.idx == 0)
@@ -132,18 +109,18 @@ class SolutSpace:
 
     def _gff_to_hits(self, gff: GFF) -> Dict[Sample, float]:
         samples: Dict[Sample, float] = {}
-        hitnum: Dict[int, int] = defaultdict(lambda: 0)
+        hitnum: Dict[Tuple[int, int], int] = defaultdict(lambda: 0)
         for item in gff.items:
             atts = dict(item.attributes_astuple())
             profile = atts["Profile_acc"]
             evalue = float(atts["E-value"])
             target = item.seqid.partition("|")[0]
 
-            phash = self._db.add_profile(profile)
-            thash = self._db.add_target(target)
+            phash = self._strdb.add(profile)
+            thash = self._strdb.add(target)
 
-            ikey = hash((phash, thash))
-            sample = Sample(phash, thash, hitnum[ikey])
+            ikey = (phash, thash)
+            sample = Sample(self._strdb, profile, target, hitnum[ikey])
             samples[sample] = evalue
             hitnum[ikey] += 1
 
@@ -152,16 +129,16 @@ class SolutSpace:
 
     def _domtblout_to_samples(self, domtblout_file) -> List[Sample]:
         samples = []
-        hitnum: Dict[int, int] = defaultdict(lambda: 0)
+        hitnum: Dict[Tuple[int, int], int] = defaultdict(lambda: 0)
         for row in read_domtbl(domtblout_file):
             profile = row.target.accession
             target = row.query.name.partition("|")[0]
 
-            phash = self._db.add_profile(profile)
-            thash = self._db.add_target(target)
+            phash = self._strdb.add(profile)
+            thash = self._strdb.add(target)
 
-            ikey = hash((phash, thash))
-            samples.append(Sample(phash, thash, hitnum[ikey]))
+            ikey = (phash, thash)
+            samples.append(Sample(self._strdb, profile, target, hitnum[ikey]))
             hitnum[ikey] += 1
 
         del hitnum
