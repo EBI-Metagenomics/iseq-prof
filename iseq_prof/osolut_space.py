@@ -1,116 +1,76 @@
-# from __future__ import annotations
+from __future__ import annotations
 
-# from typing import Dict, Iterable, Set
+from typing import Dict, List, Set, Tuple
 
-# from .solut_space import Sample, SolutSpace
-
-
-# class OSample:
-#     __slots__ = ["organism_hash", "sample"]
-
-#     def __init__(
-#         self,
-#         organism_hash: int,
-#         sample: Sample,
-#     ):
-#         self.organism_hash = organism_hash
-#         self.sample = sample
-
-#     def __hash__(self) -> int:
-#         return hash((self.organism_hash, self.sample))
-
-#     def __eq__(self, you: OSample):  # type: ignore[override]
-#         return self.organism_hash == you.organism_hash and self.sample == you.sample
+from ._strdb import StrDB
+from .solut_space import Sample, SolutSpace
 
 
-# class DB:
-#     __slots__ = ["_organisms", "_profiles", "_targets"]
+class OSample:
+    __slots__ = ["_strdb", "_organism_key", "sample"]
 
-#     def __init__(self):
-#         self._organisms: Dict[int, str] = {}
-#         self._profiles: Dict[int, str] = {}
-#         self._targets: Dict[int, str] = {}
+    def __init__(
+        self,
+        strdb: StrDB,
+        organism: str,
+        sample: Sample,
+    ):
+        self._strdb = strdb
+        self._organism_key = strdb.add(organism)
+        self.sample = sample
 
-#     def add_organism(self, organism: str) -> int:
-#         key = hash(organism)
-#         self._organisms[key] = organism
-#         return key
+    def __hash__(self) -> int:
+        return hash((self._organism_key, self.sample))
 
-#     def add_profile(self, profile: str) -> int:
-#         key = hash(profile)
-#         self._profiles[key] = profile
-#         return key
+    def __eq__(self, you: OSample):  # type: ignore[override]
+        return self._organism_key == you._organism_key and self.sample == you.sample
 
-#     def add_target(self, target: str) -> int:
-#         key = hash(target)
-#         self._targets[key] = target
-#         return key
-
-#     def create_sample(self, organism: str, profile: str, target: str) -> OSample:
-#         ohash = self.add_organism(organism)
-#         phash = self.add_profile(profile)
-#         thash = self.add_target(target)
-#         return OSample(ohash, phash, thash)
-
-#     def cross_create_samples(
-#         self, organism: str, profiles: Iterable[str], targets: Iterable[str]
-#     ):
-#         ohash = self.add_organism(organism)
-#         for profile in profiles:
-#             phash = self.add_profile(profile)
-#             for target in targets:
-#                 thash = self.add_target(target)
-#                 yield OSample(ohash, phash, thash)
-
-#     def get_organism(self, sample: OSample) -> str:
-#         return self._organisms[sample.organism_hash]
-
-#     def get_profile(self, sample: OSample) -> str:
-#         return self._profiles[sample.profile_hash]
-
-#     def get_target(self, sample: OSample) -> str:
-#         return self._targets[sample.target_hash]
+    @property
+    def organism(self) -> str:
+        return self._strdb.get(self._organism_key)
 
 
-# class OSolutSpace:
-#     def __init__(self):
+class OSolutSpace:
+    def __init__(self):
 
-#         self._db = DB()
-#         self._sample_space: Set[OSample] = set()
-#         self._true_samples: Set[OSample] = set()
-#         self._hits: Dict[OSample, float] = {}
+        self._strdb = StrDB()
+        self._sample_space: Set[OSample] = set()
+        self._true_samples: Set[OSample] = set()
+        self._hits: Dict[OSample, float] = {}
+        self._ntargets: Dict[str, int] = {}
+        self._sorted_hits = List[Tuple[OSample, float]]
 
-#     def add_organism(self, name: str, solut_space: SolutSpace):
-#         stype = SolutSpaceType(SampleType.PROF_TARGET, True)
-#         sample_space, true_samples, ordered_hits = solut_space._get_samples(stype)
+    def add_organism(self, name: str, solut_space: SolutSpace):
+        self._ntargets[name] = solut_space.ntargets
 
-#         for sample in sample_space:
-#             osample = self._convert(name, solut_space, sample)
-#             self._sample_space.add(osample)
+        true_samples = solut_space.true_samples(True)
 
-#         for sample in true_samples:
-#             osample = self._convert(name, solut_space, sample)
-#             self._true_samples.add(osample)
+        for sample in true_samples:
+            osample = OSample(self._strdb, name, sample)
+            self._true_samples.add(osample)
 
-#         for sample in ordered_hits:
-#             osample = self._convert(name, solut_space, sample)
-#             self._hits[osample] = solut_space.hit_evalue(sample)
+        for hit, evalue in solut_space.hits(True).items():
+            osample = OSample(self._strdb, name, hit)
+            self._hits[osample] = evalue
 
-#     def hit_evalue(self, hit: OSample) -> float:
-#         return self._hits[hit]
+        self._sorted_hits = []
 
-#     def _convert(self, name: str, solut_space: SolutSpace, sample: Sample):
-#         prof = solut_space.profile(sample)
-#         tgt = solut_space.target(sample)
-#         return self._db.create_sample(name, prof, tgt)
+    def true_samples(self) -> Set[OSample]:
+        return self._true_samples
 
-#     @property
-#     def _sorted_hits(self):
-#         return [k for k, _ in sorted(self._hits.items(), key=lambda x: x[1])]
+    def hits(self) -> Dict[OSample, float]:
+        return self._hits
 
-#     def per_profile(self, profile: str):
-#         return (
-#             [s for s in self._sample_space if self._db.get_profile(s) == profile],
-#             [s for s in self._true_samples if self._db.get_profile(s) == profile],
-#             [s for s in self._sorted_hits if self._db.get_profile(s) == profile],
-#         )
+    def sorted_hits(self) -> List[Tuple[OSample, float]]:
+        if len(self._sorted_hits) == 0:
+            self._sorted_hits = [
+                (k, v) for k, v in sorted(self._hits.items(), key=lambda x: x[1])
+            ]
+        return self._sorted_hits
+
+    def ntargets(self, organism: str) -> int:
+        return self._ntargets[organism]
+
+    @property
+    def organisms(self) -> List[str]:
+        return list(self._ntargets.keys())

@@ -1,18 +1,18 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from pathlib import Path
-from typing import List, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
+import hmmer_reader
 import iseq
 from fasta_reader import open_fasta
+from numpy import full, inf, zeros
+from tqdm import tqdm
 
-# from ._confusion import ConfusionMatrix
+from ._confusion import ConfusionMatrix
 from ._prof_acc import ProfAcc, ProfAccFiles
-
-# from numpy import full, inf, zeros
-
-
-# from .osolut_space import OSolutSpace
+from .osolut_space import OSample, OSolutSpace
 
 __all__ = ["Profiling"]
 
@@ -23,10 +23,16 @@ class Profiling:
         self._root = root
         self._hmmdb = root / "db.hmm"
         self._params = root / "params.txt"
-        # self._cc_pa_cache: Dict[str, ProfAcc] = {}
-        # self._oss: Optional[OSolutSpace] = None
+        self._oss: Optional[OSolutSpace] = None
+        self._true_samples: Dict[str, List[OSample]] = defaultdict(list)
+        self._hits: Dict[str, List[Tuple[OSample, float]]] = defaultdict(list)
+        self._oss_stamp: int = 4493892
         assert self._hmmdb.exists()
         assert self._params.exists()
+
+    @property
+    def profiles(self) -> List[str]:
+        return hmmer_reader.fetch_metadata(self._hmmdb)["ACC"].tolist()
 
     def iseq_cds_coverage(self, accession: str) -> float:
         """
@@ -104,34 +110,51 @@ class Profiling:
     ) -> ProfAcc:
         return ProfAcc(self._root / accession, low_memory, files)
 
-    # def confusion_matrix(self, accessions: List[str], profile: str) -> ConfusionMatrix:
-    #     if self._oss is None:
-    #         oss = OSolutSpace()
-    #         for acc in accessions:
-    #             pa = self.read_accession(acc)
-    #             oss.add_organism(acc, pa._fetch_solut_space())
-    #         self._oss = oss
-    #     else:
-    #         oss = self._oss
+    def confusion_matrix(
+        self, accessions: List[str], verbose=True
+    ) -> Optional[Dict[str, ConfusionMatrix]]:
 
-    #     (
-    #         sample_space,
-    #         true_samples,
-    #         hits,
-    #     ) = oss.per_profile(profile)
+        stamp = hash(tuple(accessions))
+        if stamp != self._oss_stamp:
+            oss = OSolutSpace()
+            for acc in tqdm(accessions, disable=not verbose):
+                pa = self.read_accession(acc)
+                oss.add_organism(acc, pa._fetch_solut_space())
+            self._oss = oss
+            self._oss_stamp = stamp
+        else:
+            assert self._oss is not None
+            oss = self._oss
 
-    #     sample_space_id = {s: i for i, s in enumerate(sample_space)}
-    #     true_sample_ids = [sample_space_id[k] for k in true_samples]
+        for s in oss.true_samples():
+            self._true_samples[s.sample.profile].append(s)
 
-    #     P = len(true_sample_ids)
-    #     N = len(sample_space_id) - P
-    #     sorted_samples = zeros(len(hits), int)
-    #     sample_scores = full(len(hits), inf)
-    #     for i, sample in enumerate(hits):
-    #         sorted_samples[i] = sample_space_id[sample]
-    #         sample_scores[i] = oss.hit_evalue(sample)
+        for s, v in oss.sorted_hits():
+            self._hits[s.sample.profile].append((s, v))
 
-    #     return ConfusionMatrix(true_sample_ids, N, sorted_samples, sample_scores)
+        profiles = set(s for s in self._true_samples.keys())
+        profiles &= set(s for s in self._hits.keys())
+
+        matrices: Dict[str, ConfusionMatrix] = {}
+        for profile in tqdm(profiles, disable=not verbose):
+            true_samples = self._true_samples[profile]
+            true_sample_ids = [hash(k) for k in true_samples]
+            hits = self._hits[profile]
+
+            space_size = sum(oss.ntargets(o) for o in oss.organisms)
+            P = len(true_sample_ids)
+            N = space_size - P
+
+            sorted_samples = zeros(len(hits), int)
+            sample_scores = full(len(hits), inf)
+            for i, hit in enumerate(hits):
+                sorted_samples[i] = hash(hit[0])
+                sample_scores[i] = hit[1]
+
+            cm = ConfusionMatrix(true_sample_ids, N, sorted_samples, sample_scores)
+            matrices[profile] = cm
+
+        return matrices
 
 
 def merge_files(prefix: str, ext: str, acc_path: Path, chunks: List[int], skip: bool):

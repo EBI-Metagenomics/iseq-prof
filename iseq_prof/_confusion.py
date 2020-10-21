@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Iterable, Optional, Union
 
 import numba
-from numpy import asarray, empty, linspace, searchsorted, trapz
+from numpy import asarray, empty, linspace, searchsorted, trapz, zeros_like
 
 __all__ = ["ConfusionMatrix", "ROCCurve", "PRCurve"]
 
@@ -120,8 +120,10 @@ class ConfusionMatrix:
     @property
     def sensitivity(self):
         """
-        Sensitivity
+        Sensitivity.
         """
+        if self._P == 0:
+            return zeros_like(self.TP)
         return self.TP / self._P
 
     @property

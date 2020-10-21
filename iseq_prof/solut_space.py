@@ -56,6 +56,7 @@ class SolutSpace:
         hits = self._gff_to_hits(gff)
 
         nprofiles = hmmer_reader.fetch_metadata(hmmer_file)["ACC"].shape[0]
+
         with open_fasta(cds_nucl_file) as file:
             ntargets = len(set(tgt.id.partition("|")[0] for tgt in file))
 
