@@ -107,25 +107,15 @@ class PSolutSpace(SolutSpace):
     def __init__(
         self, gff: GFF, hmmer_file: Path, nucl_file: Path, domtblout_file: Path
     ):
-
-        strdb = StrDB()
-        hits = read_gff_samples(strdb, gff)
-
         nprofiles = hmmer_reader.fetch_metadata(hmmer_file)["ACC"].shape[0]
 
         with open_fasta(nucl_file) as file:
             ntargets = len(set(tgt.id.partition("|")[0] for tgt in file))
 
+        strdb = StrDB()
         true_samples = set(read_domtblout_samples(strdb, domtblout_file))
-
-        samples = true_samples | set(hits.keys())
-        self._nduplicates = sum(s.idx > 0 for s in samples)
-        self._space_size = nprofiles * ntargets + self._nduplicates
-        self._nprofiles = nprofiles
-        self._ntargets = ntargets
-
-        self._true_samples: Set[Sample] = true_samples
-        self._hits: Dict[Sample, float] = hits
+        hits = read_gff_samples(strdb, gff)
+        super().__init__(nprofiles, ntargets, true_samples, hits)
 
 
 def read_gff_samples(strdb: StrDB, gff: GFF) -> Dict[Sample, float]:
