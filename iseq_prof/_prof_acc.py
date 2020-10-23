@@ -17,7 +17,7 @@ from ._confusion import ConfusionMatrix
 from ._file import assert_file_exist
 from ._gff import read_gff
 from ._tables import domtbl_as_dataframe
-from .solut_space import SolutSpace
+from .solut_space import PSolutSpace, SolutSpace
 
 __all__ = ["ProfAcc", "ProfAccFiles"]
 
@@ -96,7 +96,7 @@ class ProfAcc:
             hmmer = self._hmmer_file
             nucl = self._cds_nucl_file
             domtblout = self._domtblout_file
-            self._solut_space = SolutSpace(self._gff, hmmer, nucl, domtblout)
+            self._solut_space = PSolutSpace(self._gff, hmmer, nucl, domtblout)
             return self._solut_space
         return self._solut_space
 

@@ -111,7 +111,7 @@ class Profiling:
         return ProfAcc(self._root / accession, low_memory, files)
 
     def confusion_matrix(
-        self, accessions: List[str], verbose=True
+        self, accessions: List[str], verbose=True, clan_wise=False
     ) -> Optional[Dict[str, ConfusionMatrix]]:
 
         stamp = hash(tuple(accessions))
@@ -119,7 +119,8 @@ class Profiling:
             oss = OSolutSpace()
             for acc in tqdm(accessions, disable=not verbose):
                 pa = self.read_accession(acc)
-                oss.add_organism(acc, pa._fetch_solut_space())
+                solut_space = pa._fetch_solut_space()
+                oss.add_organism(acc, solut_space)
             self._oss = oss
             self._oss_stamp = stamp
         else:
