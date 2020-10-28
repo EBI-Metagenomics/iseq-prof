@@ -56,9 +56,7 @@ class OrgResFiles:
 
 
 class OrganismResult:
-    def __init__(
-        self, accdir: Path, low_memory=False, files: Optional[OrgResFiles] = None
-    ):
+    def __init__(self, accdir: Path, files: Optional[OrgResFiles] = None):
         if files is None:
             files = OrgResFiles()
         hmmer_file = accdir / files.hmmer
@@ -73,11 +71,8 @@ class OrganismResult:
         assert_file_exist(output_file)
         assert_file_exist(genbank)
 
-        self._gff: Optional[GFF] = read_gff(output_file)
+        self._gff: Optional[GFF] = None
         self._solut_space: Optional[SolutSpace] = None
-        if low_memory:
-            del self._gff
-            self._gff = None
 
         self._domtblout_file = domtblout_file
         self._output_file = output_file

@@ -23,7 +23,6 @@ class Profiling:
         self._root = root
         self._hmmdb = root / "db.hmm"
         self._params = root / "params.txt"
-        self._oss: Optional[OSolutSpace] = None
         self._true_samples: Dict[str, List[OSample]] = defaultdict(list)
         self._hits: Dict[str, List[Tuple[OSample, float]]] = defaultdict(list)
         self._oss_stamp: int = 4493892
@@ -106,26 +105,19 @@ class Profiling:
         return [f.name for f in folders]
 
     def read_organism_result(
-        self, organism: str, low_memory=False, files: Optional[OrgResFiles] = None
+        self, organism: str, files: Optional[OrgResFiles] = None
     ) -> OrganismResult:
-        return OrganismResult(self._root / organism, low_memory, files)
+        return OrganismResult(self._root / organism, files)
 
     def confusion_matrix(
         self, organisms: List[str], verbose=True, clan_wise=False
     ) -> Optional[Dict[str, ConfusionMatrix]]:
 
-        stamp = hash(tuple(organisms))
-        if stamp != self._oss_stamp:
-            oss = OSolutSpace()
-            for organism in tqdm(organisms, disable=not verbose):
-                pa = self.read_organism_result(organism)
-                solut_space = pa.solution_space()
-                oss.add_organism(organism, solut_space)
-            self._oss = oss
-            self._oss_stamp = stamp
-        else:
-            assert self._oss is not None
-            oss = self._oss
+        oss = OSolutSpace()
+        for organism in tqdm(organisms, disable=not verbose):
+            pa = self.read_organism_result(organism)
+            solut_space = pa.solution_space()
+            oss.add_organism(organism, solut_space)
 
         for s in oss.true_samples():
             self._true_samples[s.sample.profile].append(s)
