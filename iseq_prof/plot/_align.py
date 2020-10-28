@@ -1,12 +1,12 @@
 import plotly.express as px
 from pandas import DataFrame
 
-from .._prof_acc import ProfAcc
+from .._organism_result import OrganismResult
 
 __all__ = ["align"]
 
 
-def align(prof_acc: ProfAcc, evalue=1e-10):
+def align(prof_acc: OrganismResult, evalue=1e-10):
     """
     Alignment plot.
     """

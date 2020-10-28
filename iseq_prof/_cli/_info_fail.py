@@ -3,7 +3,7 @@ from pathlib import Path
 import click
 from tabulate import tabulate
 
-from .._prof_acc import ProfAcc
+from .._organism_result import OrganismResult
 
 __all__ = ["info_fail"]
 
@@ -27,11 +27,11 @@ def info_fail(experiment: str, accession: str, e_value: float):
     Show information about accession.
     """
     root = Path(experiment)
-    prof_acc = ProfAcc(root / accession)
+    prof_acc = OrganismResult(root / accession)
     show_false_tables(prof_acc, e_value)
 
 
-def show_false_tables(prof_acc: ProfAcc, e_value: float):
+def show_false_tables(prof_acc: OrganismResult, e_value: float):
     hit_table = prof_acc.hit_table(e_value)
     hit_table = hit_table.reset_index(drop=True)
     hit_table = hit_table.sort_values(["seqid", "profile", "e_value"])

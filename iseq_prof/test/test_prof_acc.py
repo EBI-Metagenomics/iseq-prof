@@ -38,7 +38,7 @@ def test_prof_acc(tmp_path):
     shutil.copyfile(output, root / acc / f"{acc}.gb")
 
     prof = Profiling(Path(tmp_path))
-    pa = prof.read_accession(acc)
+    pa = prof.read_organism_result(acc)
 
     assert_that(str(pa.accession)).is_equal_to("<AE014075.1>")
 
@@ -77,7 +77,7 @@ def test_prof_acc(tmp_path):
     ]
     assert_allclose(cm.fpr[[0, 5, 10, 13, -2, -1]], fpr)
 
-    ss = pa._fetch_solut_space()
+    ss = pa.solution_space()
     assert_that(ss.space_size(False)).is_equal_to(243)
     assert_that(ss.nduplicates).is_equal_to(3)
 

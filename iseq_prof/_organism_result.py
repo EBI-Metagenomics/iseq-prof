@@ -19,7 +19,7 @@ from ._gff import read_gff
 from ._tables import domtbl_as_dataframe
 from .solut_space import PSolutSpace, SolutSpace
 
-__all__ = ["ProfAcc", "ProfAccFiles"]
+__all__ = ["OrganismResult", "OrgResFiles"]
 
 
 @dataclass(frozen=True)
@@ -48,19 +48,19 @@ class Score:
 
 
 @dataclass
-class ProfAccFiles:
+class OrgResFiles:
     hmmer: str = "dbspace.hmm"
     cds_nucl: str = "cds_nucl.fasta"
     domtblout: str = "domtblout.txt"
     output: str = "output.gff"
 
 
-class ProfAcc:
+class OrganismResult:
     def __init__(
-        self, accdir: Path, low_memory=False, files: Optional[ProfAccFiles] = None
+        self, accdir: Path, low_memory=False, files: Optional[OrgResFiles] = None
     ):
         if files is None:
-            files = ProfAccFiles()
+            files = OrgResFiles()
         hmmer_file = accdir / files.hmmer
         cds_nucl_file = accdir / files.cds_nucl
         domtblout_file = accdir / files.domtblout
@@ -88,7 +88,7 @@ class ProfAcc:
         self._cds_nucl_file = cds_nucl_file
         self._domtblout_file = domtblout_file
 
-    def _fetch_solut_space(self) -> SolutSpace:
+    def solution_space(self) -> SolutSpace:
         if self._solut_space is None:
             if self._gff is None:
                 self._gff = read_gff(self._output_file)
@@ -101,14 +101,14 @@ class ProfAcc:
         return self._solut_space
 
     def __repr__(self) -> str:
-        return f"ProfAcc({self.accession})"
+        return f"OrganismResult({self.accession})"
 
     @property
     def accession(self) -> Accession:
         return self._accession
 
     def confusion_matrix(self, drop_duplicates=False) -> ConfusionMatrix:
-        solut_space = self._fetch_solut_space()
+        solut_space = self.solution_space()
 
         true_samples = solut_space.true_samples(drop_duplicates)
         true_sample_ids = [hash(k) for k in true_samples]
@@ -125,19 +125,6 @@ class ProfAcc:
             sample_scores[i] = hit[1]
 
         return ConfusionMatrix(true_sample_ids, N, sorted_samples, sample_scores)
-
-    # def score(
-    #     self,
-    #     space_type: SolutSpaceType,
-    #     e_value: float,
-    # ) -> Score:
-    #     cm = self.confusion_matrix(space_type)
-    #     i = cm.cutpoint(e_value)
-    #     sensitivity = cm.sensitivity[i]
-    #     specifity = cm.specifity[i]
-    #     roc_auc = cm.roc_curve.auc
-    #     pr_auc = cm.pr_curve.auc
-    #     return Score(sensitivity, specifity, roc_auc, pr_auc)
 
     def true_table(self, evalue_col="domain.i_value") -> DataFrame:
         df = domtbl_as_dataframe(read_domtbl(self._domtblout_file))

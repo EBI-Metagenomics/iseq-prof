@@ -4,12 +4,12 @@ import plotly.express as px
 from numpy import log10
 from pandas import DataFrame, concat
 
-from .._prof_acc import ProfAcc
+from .._organism_result import OrganismResult
 
 __all__ = ["acc_eeplot", "eeplot"]
 
 
-def eeplot(prof_accs: List[ProfAcc], evalue=1e-10, multihit=False):
+def eeplot(prof_accs: List[OrganismResult], evalue=1e-10, multihit=False):
     """
     E-value vs e-value plot.
     """
@@ -30,7 +30,7 @@ def eeplot(prof_accs: List[ProfAcc], evalue=1e-10, multihit=False):
     return _plot(df, evalue, "accession", title)
 
 
-def acc_eeplot(prof_acc: ProfAcc, evalue, multihit):
+def acc_eeplot(prof_acc: OrganismResult, evalue, multihit):
     """
     E-value vs e-value plot.
     """
@@ -48,7 +48,7 @@ def acc_eeplot(prof_acc: ProfAcc, evalue, multihit):
     return _plot(df, evalue, "profile", title)
 
 
-def compute_table(prof_acc: ProfAcc):
+def compute_table(prof_acc: OrganismResult):
 
     hit_table = get_hit_table(prof_acc, 1.0)
 
@@ -73,7 +73,7 @@ def compute_table(prof_acc: ProfAcc):
     return df
 
 
-def get_true_table(prof_acc: ProfAcc, evalue_colname):
+def get_true_table(prof_acc: OrganismResult, evalue_colname):
     true_table = prof_acc.true_table(evalue_col=evalue_colname)
     true_table.rename(
         columns={
@@ -104,7 +104,7 @@ def get_true_table(prof_acc: ProfAcc, evalue_colname):
     return true_table
 
 
-def get_hit_table(prof_acc: ProfAcc, evalue=1.0):
+def get_hit_table(prof_acc: OrganismResult, evalue=1.0):
     hit_table = prof_acc.hit_table(evalue=evalue)
     hit_table["target"] = hit_table["seqid"].str.replace(r"\|.*", "")
     hit_table.rename(

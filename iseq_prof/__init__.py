@@ -5,7 +5,7 @@ from ._accession import Accession
 from ._cli import cli
 from ._confusion import ConfusionMatrix
 from ._genbank import GenBank, genbank_catalog
-from ._prof_acc import ProfAcc
+from ._organism_result import OrganismResult
 from ._profiling import Profiling
 from ._testit import test
 
@@ -18,7 +18,7 @@ __all__ = [
     "Accession",
     "ConfusionMatrix",
     "GenBank",
-    "ProfAcc",
+    "OrganismResult",
     "Profiling",
     "__version__",
     "cli",

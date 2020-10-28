@@ -31,7 +31,7 @@ def merge_scores(
     root = Path(experiment)
     prof = Profiling(root)
     dfs = []
-    for acc in prof.accessions:
+    for acc in prof.organisms:
         fp = root / acc / "scores.csv"
         if not fp.exists():
             click.echo(f"🔥 {fp} not found.", err=True)
