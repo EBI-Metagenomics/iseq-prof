@@ -11,7 +11,7 @@ from iseq.gff import GFF
 
 from ._strdb import StrDB
 
-__all__ = ["Sample", "SolutSpace", "PSolutSpace"]
+__all__ = ["Sample", "SolutSpace", "ProfileSpace", "ProfileNaming"]
 
 
 class Sample:
@@ -103,55 +103,64 @@ class SolutSpace:
         return hits
 
 
-class PSolutSpace(SolutSpace):
+class ProfileNaming:
+    def name(self, accession: str):
+        return accession
+
+
+class ProfileSpace(SolutSpace):
     def __init__(
-        self, gff: GFF, hmmer_file: Path, nucl_file: Path, domtblout_file: Path
+        self,
+        gff: GFF,
+        hmmer_file: Path,
+        nucl_file: Path,
+        domtblout_file: Path,
+        profile_naming: ProfileNaming = ProfileNaming(),
     ):
         nprofiles = hmmer_reader.fetch_metadata(hmmer_file)["ACC"].shape[0]
+        self._profile_naming = profile_naming
+        self._strdb = StrDB()
 
         with open_fasta(nucl_file) as file:
             ntargets = len(set(tgt.id.partition("|")[0] for tgt in file))
 
-        strdb = StrDB()
-        true_samples = set(read_domtblout_samples(strdb, domtblout_file))
-        hits = read_gff_samples(strdb, gff)
+        true_samples = set(self._read_domtblout_samples(domtblout_file))
+        hits = self._read_gff_samples(gff)
         super().__init__(nprofiles, ntargets, true_samples, hits)
 
+    def _read_gff_samples(self, gff: GFF) -> Dict[Sample, float]:
+        samples: Dict[Sample, float] = {}
+        hitnum: Dict[Tuple[int, int], int] = defaultdict(lambda: 0)
+        for item in gff.items:
+            atts = dict(item.attributes_astuple())
+            profile = self._profile_naming.name(atts["Profile_acc"])
+            evalue = float(atts["E-value"])
+            target = item.seqid.partition("|")[0]
 
-def read_gff_samples(strdb: StrDB, gff: GFF) -> Dict[Sample, float]:
-    samples: Dict[Sample, float] = {}
-    hitnum: Dict[Tuple[int, int], int] = defaultdict(lambda: 0)
-    for item in gff.items:
-        atts = dict(item.attributes_astuple())
-        profile = atts["Profile_acc"]
-        evalue = float(atts["E-value"])
-        target = item.seqid.partition("|")[0]
+            phash = self._strdb.add(profile)
+            thash = self._strdb.add(target)
 
-        phash = strdb.add(profile)
-        thash = strdb.add(target)
+            ikey = (phash, thash)
+            sample = Sample(self._strdb, profile, target, hitnum[ikey])
+            samples[sample] = evalue
+            hitnum[ikey] += 1
 
-        ikey = (phash, thash)
-        sample = Sample(strdb, profile, target, hitnum[ikey])
-        samples[sample] = evalue
-        hitnum[ikey] += 1
+        del hitnum
+        return samples
 
-    del hitnum
-    return samples
+    def _read_domtblout_samples(self, domtblout_file) -> Set[Sample]:
+        samples = []
+        hitnum: Dict[Tuple[int, int], int] = defaultdict(lambda: 0)
+        for row in read_domtbl(domtblout_file):
+            profile = self._profile_naming.name(row.target.accession)
+            target = row.query.name.partition("|")[0]
 
+            phash = self._strdb.add(profile)
+            thash = self._strdb.add(target)
 
-def read_domtblout_samples(strdb: StrDB, domtblout_file) -> Set[Sample]:
-    samples = []
-    hitnum: Dict[Tuple[int, int], int] = defaultdict(lambda: 0)
-    for row in read_domtbl(domtblout_file):
-        profile = row.target.accession
-        target = row.query.name.partition("|")[0]
+            ikey = (phash, thash)
+            samples.append(Sample(self._strdb, profile, target, hitnum[ikey]))
+            hitnum[ikey] += 1
 
-        phash = strdb.add(profile)
-        thash = strdb.add(target)
-
-        ikey = (phash, thash)
-        samples.append(Sample(strdb, profile, target, hitnum[ikey]))
-        hitnum[ikey] += 1
-
-    del hitnum
-    return set(samples)
+        del hitnum
+        return set(samples)

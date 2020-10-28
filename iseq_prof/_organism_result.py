@@ -17,7 +17,7 @@ from ._confusion import ConfusionMatrix
 from ._file import assert_file_exist
 from ._gff import read_gff
 from ._tables import domtbl_as_dataframe
-from .solut_space import PSolutSpace, SolutSpace
+from .solut_space import ProfileNaming, ProfileSpace, SolutSpace
 
 __all__ = ["OrganismResult", "OrgResFiles"]
 
@@ -56,14 +56,32 @@ class OrgResFiles:
 
 
 class OrganismResult:
-    def __init__(self, accdir: Path, files: Optional[OrgResFiles] = None):
+    """
+    Organism result.
+
+    Parameters
+    ----------
+    results_path
+        Path to organism results.
+    files:
+        Files to be read.
+    profile_naming
+        Profile naming.
+    """
+
+    def __init__(
+        self,
+        results_path: Path,
+        files=OrgResFiles(),
+        profile_naming=ProfileNaming(),
+    ):
         if files is None:
             files = OrgResFiles()
-        hmmer_file = accdir / files.hmmer
-        cds_nucl_file = accdir / files.cds_nucl
-        domtblout_file = accdir / files.domtblout
-        output_file = accdir / files.output
-        genbank = accdir / f"{accdir.name}.gb"
+        hmmer_file = results_path / files.hmmer
+        cds_nucl_file = results_path / files.cds_nucl
+        domtblout_file = results_path / files.domtblout
+        output_file = results_path / files.output
+        genbank = results_path / f"{results_path.name}.gb"
 
         assert_file_exist(hmmer_file)
         assert_file_exist(cds_nucl_file)
@@ -82,6 +100,7 @@ class OrganismResult:
         self._hmmer_file = hmmer_file
         self._cds_nucl_file = cds_nucl_file
         self._domtblout_file = domtblout_file
+        self._profile_naming = profile_naming
 
     def solution_space(self) -> SolutSpace:
         if self._solut_space is None:
@@ -91,7 +110,9 @@ class OrganismResult:
             hmmer = self._hmmer_file
             nucl = self._cds_nucl_file
             domtblout = self._domtblout_file
-            self._solut_space = PSolutSpace(self._gff, hmmer, nucl, domtblout)
+            gff = self._gff
+            naming = self._profile_naming
+            self._solut_space = ProfileSpace(gff, hmmer, nucl, domtblout, naming)
             return self._solut_space
         return self._solut_space
 

@@ -13,19 +13,32 @@ from tqdm import tqdm
 from ._confusion import ConfusionMatrix
 from ._organism_result import OrganismResult, OrgResFiles
 from .osolut_space import OSample, OSolutSpace
+from .pfam import Clans
+from .solut_space import ProfileNaming
 
 __all__ = ["Profiling"]
 
 
+class ClanNaming(ProfileNaming):
+    def __init__(self, clans: Clans):
+        self._clans = clans
+
+    def name(self, accession: str) -> str:
+        name = self._clans.get(accession)
+        if name is None:
+            return "Unclassified"
+        return name
+
+
 class Profiling:
-    def __init__(self, root: Union[str, Path]):
+    def __init__(self, root: Union[str, Path], clans=Clans()):
         root = Path(root)
         self._root = root
         self._hmmdb = root / "db.hmm"
         self._params = root / "params.txt"
         self._true_samples: Dict[str, List[OSample]] = defaultdict(list)
         self._hits: Dict[str, List[Tuple[OSample, float]]] = defaultdict(list)
-        self._oss_stamp: int = 4493892
+        self._clans = clans
         assert self._hmmdb.exists()
         assert self._params.exists()
 
@@ -105,7 +118,10 @@ class Profiling:
         return [f.name for f in folders]
 
     def read_organism_result(
-        self, organism: str, files: Optional[OrgResFiles] = None
+        self,
+        organism: str,
+        files=OrgResFiles(),
+        profile_naming=ProfileNaming(),
     ) -> OrganismResult:
         return OrganismResult(self._root / organism, files)
 
@@ -114,8 +130,13 @@ class Profiling:
     ) -> Optional[Dict[str, ConfusionMatrix]]:
 
         oss = OSolutSpace()
+        naming = ProfileNaming()
+        if clan_wise:
+            naming = ClanNaming(self._clans)
+
+        files = OrgResFiles()
         for organism in tqdm(organisms, disable=not verbose):
-            pa = self.read_organism_result(organism)
+            pa = self.read_organism_result(organism, files, naming)
             solut_space = pa.solution_space()
             oss.add_organism(organism, solut_space)
 
