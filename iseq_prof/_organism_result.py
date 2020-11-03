@@ -113,7 +113,7 @@ class OrganismResult:
             gff = self._gff
             naming = self._profile_naming
             self._solut_space = ProfileSpace(gff, hmmer, nucl, domtblout, naming)
-            return self._solut_space
+
         return self._solut_space
 
     def __repr__(self) -> str:

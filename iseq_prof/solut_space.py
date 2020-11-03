@@ -115,10 +115,10 @@ class ProfileSpace(SolutSpace):
         hmmer_file: Path,
         nucl_file: Path,
         domtblout_file: Path,
-        profile_naming: ProfileNaming = ProfileNaming(),
+        naming: ProfileNaming = ProfileNaming(),
     ):
         nprofiles = hmmer_reader.fetch_metadata(hmmer_file)["ACC"].shape[0]
-        self._profile_naming = profile_naming
+        self._profile_naming = naming
         self._strdb = StrDB()
 
         with open_fasta(nucl_file) as file:

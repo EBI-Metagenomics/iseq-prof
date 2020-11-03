@@ -32,7 +32,7 @@ class ClanNaming(ProfileNaming):
 
 class Profiling:
     def __init__(self, root: Union[str, Path], clans=Clans()):
-        root = Path(root)
+        root = Path(root).resolve()
         self._root = root
         self._hmmdb = root / "db.hmm"
         self._params = root / "params.txt"
@@ -41,6 +41,10 @@ class Profiling:
         self._clans = clans
         assert self._hmmdb.exists()
         assert self._params.exists()
+
+    @property
+    def root(self) -> Path:
+        return self._root
 
     @property
     def profiles(self) -> List[str]:
@@ -123,7 +127,7 @@ class Profiling:
         files=OrgResFiles(),
         profile_naming=ProfileNaming(),
     ) -> OrganismResult:
-        return OrganismResult(self._root / organism, files)
+        return OrganismResult(self._root / organism, files, profile_naming)
 
     def confusion_matrix(
         self, organisms: List[str], verbose=True, clan_wise=False
