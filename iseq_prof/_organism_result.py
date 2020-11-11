@@ -19,7 +19,7 @@ from ._gff import read_gff
 from ._tables import domtbl_as_dataframe
 from .solut_space import ProfileNaming, ProfileSpace, SolutSpace
 
-__all__ = ["OrganismResult", "OrgResFiles"]
+__all__ = ["OrganismResult"]
 
 
 @dataclass(frozen=True)
@@ -47,14 +47,6 @@ class Score:
         return [f.type for f in dataclasses.fields(cls)]
 
 
-@dataclass
-class OrgResFiles:
-    hmmer: str = "dbspace.hmm"
-    cds_nucl: str = "cds_nucl.fasta"
-    domtblout: str = "domtblout.txt"
-    output: str = "output.gff"
-
-
 class OrganismResult:
     """
     Organism result.
@@ -72,15 +64,12 @@ class OrganismResult:
     def __init__(
         self,
         results_path: Path,
-        files=OrgResFiles(),
         profile_naming=ProfileNaming(),
     ):
-        if files is None:
-            files = OrgResFiles()
-        hmmer_file = results_path / files.hmmer
-        cds_nucl_file = results_path / files.cds_nucl
-        domtblout_file = results_path / files.domtblout
-        output_file = results_path / files.output
+        hmmer_file = results_path / "dbspace.hmm"
+        cds_nucl_file = results_path / "cds_nucl.fasta"
+        domtblout_file = results_path / "domtblout.txt"
+        output_file = results_path / "output.gff"
         genbank = results_path / f"{results_path.name}.gb"
 
         assert_file_exist(hmmer_file)

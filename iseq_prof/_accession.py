@@ -5,7 +5,30 @@ from typing import List, Optional, Type
 
 from Bio import Entrez, SeqIO
 
+from ._cache import get_cache
+from ._file import file_hash
+
 __all__ = ["Accession"]
+
+
+def _first_record(filepath: Path):
+    with open(filepath, "r") as file:
+        return next(SeqIO.parse(file, "genbank"))
+
+
+def _get_first_record(filepath: Path):
+    cache = get_cache()
+    if cache is not None:
+        key = file_hash(filepath)
+        v = cache.get(key)
+        if v is None:
+            record = _first_record(filepath)
+            cache.set(key, record)
+        else:
+            record = v
+    else:
+        record = _first_record(filepath)
+    return record
 
 
 class Accession:
@@ -84,11 +107,10 @@ class Accession:
 
     @classmethod
     def from_file(cls: Type[Accession], filepath: Path) -> Accession:
-        with open(filepath, "r") as file:
-            record = next(SeqIO.parse(file, "genbank"))
-            version = record.annotations["sequence_version"]
-            acc = cls(f"{record.name}.{version}")
-            acc._extract_annotations(record)
+        record = _get_first_record(filepath)
+        version = record.annotations["sequence_version"]
+        acc = cls(f"{record.name}.{version}")
+        acc._extract_annotations(record)
         return acc
 
     def __str__(self) -> str:

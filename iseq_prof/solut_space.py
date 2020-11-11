@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
-import hmmer_reader
 from fasta_reader import open_fasta
 from hmmer import read_domtbl
 from iseq.gff import GFF
 
+from ._hmmer_reader import get_nprofiles
 from ._strdb import StrDB
 
 __all__ = ["Sample", "SolutSpace", "ProfileSpace", "ProfileNaming"]
@@ -104,6 +103,8 @@ class SolutSpace:
 
 
 class ProfileNaming:
+    __slots__: List[str] = []
+
     def name(self, accession: str):
         return accession
 
@@ -117,7 +118,7 @@ class ProfileSpace(SolutSpace):
         domtblout_file: Path,
         naming: ProfileNaming = ProfileNaming(),
     ):
-        nprofiles = hmmer_reader.fetch_metadata(hmmer_file)["ACC"].shape[0]
+        nprofiles = get_nprofiles(hmmer_file)
         self._profile_naming = naming
         self._strdb = StrDB()
 
@@ -130,37 +131,31 @@ class ProfileSpace(SolutSpace):
 
     def _read_gff_samples(self, gff: GFF) -> Dict[Sample, float]:
         samples: Dict[Sample, float] = {}
-        hitnum: Dict[Tuple[int, int], int] = defaultdict(lambda: 0)
+        hitnum: Dict[Tuple[int, int], int] = {}
         for item in gff.items:
             atts = dict(item.attributes_astuple())
             profile = self._profile_naming.name(atts["Profile_acc"])
             evalue = float(atts["E-value"])
             target = item.seqid.partition("|")[0]
 
-            phash = self._strdb.add(profile)
-            thash = self._strdb.add(target)
-
-            ikey = (phash, thash)
-            sample = Sample(self._strdb, profile, target, hitnum[ikey])
+            ikey = (profile, target)
+            v = hitnum.get(ikey, 0)
+            sample = Sample(self._strdb, profile, target, v)
             samples[sample] = evalue
-            hitnum[ikey] += 1
+            hitnum[ikey] = v + 1
 
-        del hitnum
         return samples
 
     def _read_domtblout_samples(self, domtblout_file) -> Set[Sample]:
         samples = []
-        hitnum: Dict[Tuple[int, int], int] = defaultdict(lambda: 0)
+        hitnum: Dict[Tuple[int, int], int] = {}
         for row in read_domtbl(domtblout_file):
             profile = self._profile_naming.name(row.target.accession)
             target = row.query.name.partition("|")[0]
 
-            phash = self._strdb.add(profile)
-            thash = self._strdb.add(target)
+            ikey = (profile, target)
+            v = hitnum.get(ikey, 0)
+            samples.append(Sample(self._strdb, profile, target, v))
+            hitnum[ikey] = v + 1
 
-            ikey = (phash, thash)
-            samples.append(Sample(self._strdb, profile, target, hitnum[ikey]))
-            hitnum[ikey] += 1
-
-        del hitnum
         return set(samples)

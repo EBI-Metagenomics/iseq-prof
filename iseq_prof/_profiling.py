@@ -11,7 +11,7 @@ from numpy import full, inf, zeros
 from tqdm import tqdm
 
 from ._confusion import ConfusionMatrix
-from ._organism_result import OrganismResult, OrgResFiles
+from ._organism_result import OrganismResult
 from .osolut_space import OSample, OSolutSpace
 from .pfam import Clans
 from .solut_space import ProfileNaming
@@ -20,6 +20,8 @@ __all__ = ["Profiling"]
 
 
 class ClanNaming(ProfileNaming):
+    __slots__ = ["_clans"]
+
     def __init__(self, clans: Clans):
         self._clans = clans
 
@@ -124,10 +126,9 @@ class Profiling:
     def read_organism_result(
         self,
         organism: str,
-        files=OrgResFiles(),
         profile_naming=ProfileNaming(),
     ) -> OrganismResult:
-        return OrganismResult(self._root / organism, files, profile_naming)
+        return OrganismResult(self._root / organism, profile_naming)
 
     def confusion_matrix(
         self, organisms: List[str], verbose=True, clan_wise=False
@@ -138,9 +139,8 @@ class Profiling:
         if clan_wise:
             naming = ClanNaming(self._clans)
 
-        files = OrgResFiles()
         for organism in tqdm(organisms, disable=not verbose):
-            pa = self.read_organism_result(organism, files, naming)
+            pa = self.read_organism_result(organism, naming)
             solut_space = pa.solution_space()
             oss.add_organism(organism, solut_space)
 

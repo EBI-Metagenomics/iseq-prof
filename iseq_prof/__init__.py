@@ -2,6 +2,7 @@ from importlib import import_module as _import_module
 
 from . import fasta, filedb, pfam, plot, solut_space
 from ._accession import Accession
+from ._cache import turn_cache_on
 from ._cli import cli
 from ._confusion import ConfusionMatrix
 from ._genbank import GenBank, genbank_catalog
@@ -30,4 +31,5 @@ __all__ = [
     "plot",
     "solut_space",
     "test",
+    "turn_cache_on",
 ]
