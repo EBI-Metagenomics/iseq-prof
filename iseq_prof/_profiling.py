@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 
 import hmmer_reader
 import iseq
-from fasta_reader import open_fasta
+from fasta_reader import read_fasta
 from numpy import full, inf, zeros
 from tqdm import tqdm
 
@@ -71,7 +71,7 @@ class Profiling:
         assert cds_amino_file.exists()
 
         cds_ids = []
-        with open_fasta(cds_amino_file) as file:
+        with read_fasta(cds_amino_file) as file:
             for item in file:
                 cds_ids.append(item.id.partition("|")[0])
 

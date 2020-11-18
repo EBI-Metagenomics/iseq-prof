@@ -1,13 +1,13 @@
 from pathlib import Path
 from typing import List
 
-from fasta_reader import FASTAItem, FASTAWriter, open_fasta
+from fasta_reader import FASTAItem, FASTAWriter, read_fasta
 
 __all__ = ["downsample"]
 
 
 def downsample(infile: Path, outfile: Path, size: int, random):
-    targets: List[FASTAItem] = list(open_fasta(infile))
+    targets: List[FASTAItem] = list(read_fasta(infile))
     if size > len(targets):
         raise ValueError("Size is greater than the number of targets.")
 

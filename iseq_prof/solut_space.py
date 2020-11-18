@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
-from fasta_reader import open_fasta
+from fasta_reader import read_fasta
 from hmmer import read_domtbl
 from iseq.gff import GFF
 
@@ -122,7 +122,7 @@ class ProfileSpace(SolutSpace):
         self._profile_naming = naming
         self._strdb = StrDB()
 
-        with open_fasta(nucl_file) as file:
+        with read_fasta(nucl_file) as file:
             ntargets = len(set(tgt.id.partition("|")[0] for tgt in file))
 
         true_samples = set(self._read_domtblout_samples(domtblout_file))
