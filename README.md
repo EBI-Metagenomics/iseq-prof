@@ -1,3 +1,3 @@
 # iseq-prof
 
-ISEQ profiling.
+iSeq profiling.
