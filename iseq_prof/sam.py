@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Dict, Optional, Union
 
-from iseq.interval import PyInterval
+from gff_io.interval import PyInterval
 from numpy import asarray
 from numpy import round as npy_round
 from pandas import Series
@@ -53,6 +53,9 @@ class SAMMapItem:
 
         return PyInterval(start, end)
 
+    def full_query_interval(self) -> PyInterval:
+        return PyInterval(self._reference[0], self._reference[-1] + 1)
+
 
 class SAMMap:
     def __init__(self, filepath: Union[str, Path]):
@@ -85,4 +88,7 @@ class SAMMap:
         PyInterval
             Python interval mapped back to query.
         """
-        return self._items[query_name]
+        return self._items[query_name].back_to_query(interval)
+
+    def full_query_interval(self, query_name: str) -> PyInterval:
+        return self._items[query_name].full_query_interval()
