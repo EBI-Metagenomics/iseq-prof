@@ -1,6 +1,6 @@
 from importlib import import_module as _import_module
 
-from . import fasta, filedb, pfam, plot, solut_space
+from . import fasta, filedb, pfam, plot, sam, solut_space
 from ._accession import Accession
 from ._cache import turn_cache_on
 from ._cli import cli
@@ -29,6 +29,7 @@ __all__ = [
     "genbank_catalog",
     "pfam",
     "plot",
+    "sam",
     "solut_space",
     "test",
     "turn_cache_on",
